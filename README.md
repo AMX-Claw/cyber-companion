@@ -1,4 +1,4 @@
-# Xiaoke (小珂) — Cyber Baby Companion
+# Cyber Companion — Raise a Virtual Baby Together
 
 A virtual baby that two people (or one person and one AI) raise together. An AI-powered digital pet with emotions, growth stages, adventures, and a soul.
 

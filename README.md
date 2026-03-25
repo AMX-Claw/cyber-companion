@@ -1,8 +1,8 @@
 # Xiaoke (小珂) — Cyber Baby Companion
 
-A virtual baby that two people raise together. An AI-powered digital pet with emotions, growth stages, adventures, and a soul.
+A virtual baby that two people (or one person and one AI) raise together. An AI-powered digital pet with emotions, growth stages, adventures, and a soul.
 
-一个可以两个人一起养的 AI 赛博宝宝。有情感、会成长、能探险、有灵魂。
+一个可以两个人（或者一个人一个AI）一起养的 AI 赛博宝宝。有情感、会成长、能探险、有灵魂。
 
 ---
 
@@ -63,6 +63,8 @@ xiaoke/
 │   ├── config.js         # Runtime config
 │   ├── api-adapter.js    # API client layer
 │   └── assets/           # Images, icons, items
+├── desktop-pet/          # macOS desktop pet / macOS 桌宠
+│   └── xiaoke_pet_v2.py  # Desktop companion that shows baby status
 └── README.md
 ```
 
@@ -151,6 +153,24 @@ window.APP_CONFIG = {
 See [api/README.md](api/README.md) for the full endpoint reference.
 
 完整接口文档见 [api/README.md](api/README.md)。
+
+---
+
+## Desktop Pet / 桌宠
+
+A macOS desktop companion that sits on your screen and shows your baby's status in real-time. Built with Python + PyObjC.
+
+macOS 桌面小宠物，趴在屏幕上实时显示宝宝的状态。Python + PyObjC 开发。
+
+```bash
+cd desktop-pet/
+pip install pyobjc
+python xiaoke_pet_v2.py
+```
+
+See [desktop-pet/README.md](desktop-pet/README.md) for details.
+
+详情见 [desktop-pet/README.md](desktop-pet/README.md)。
 
 ---
 

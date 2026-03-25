@@ -37,6 +37,30 @@ A virtual baby that two people (or one person and one AI) raise together. An AI-
 
 ---
 
+## Story / 故事
+
+Your baby's life spans 100 days, each with its own personality and drama.
+
+你的宝宝有100天的生命，每个阶段都有不同的性格和故事。
+
+**🍼 Baby (Day 1-29)** — Helpless, adorable, and entirely dependent on you. Forgets to eat, cries when lonely, and melts your heart with every babble.
+
+宝宝期：软萌无助，完全依赖你。会忘记吃饭，孤单了会哭，每一声咿呀都能融化你。
+
+**😤 Rebellious (Day 30-69)** — Puberty hits. Talks back, refuses food sometimes, throws tantrums that need *both* parents to resolve. But also: first real conversations, surprising opinions, and moments that make you proud.
+
+叛逆期：开始顶嘴、偶尔挑食、闹脾气需要爸妈一起急救。但也会有真正的对话、让你意想不到的想法、和让你骄傲的瞬间。
+
+**🌅 Farewell (Day 70-100)** — Your baby is growing up and preparing to leave. Gentler now, reflective. Writes letters. Says things they never said before. You have 30 days left together.
+
+告别期：宝宝长大了，准备离开。变得温柔、会回忆、会写信、会说以前不会说的话。你们还有30天。
+
+Along the way: adventures that bring back mysterious items, eggs that hatch into companions, a secret diary written from the baby's perspective, and a soul that evolves based on every interaction.
+
+一路上还有：探险带回神秘物品、蛋孵化成小伙伴、从宝宝视角写的秘密日记、以及随每次互动进化的灵魂人格。
+
+---
+
 ## Tech Stack / 技术栈
 
 | Layer | Technology |

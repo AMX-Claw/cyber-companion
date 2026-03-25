@@ -1,0 +1,3383 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🐚 Kora - 赛博宝宝</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kora">
+<meta name="theme-color" content="#ff9a9e">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+// Gemini API 配置
+window.APP_CONFIG = {
+  GEMINI_API_KEY: '',  // Fill in your Gemini API key
+  GEMINI_MODEL: 'gemini-2.5-flash',
+  DEFAULT_LANGUAGE: 'zh'
+};
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, #fdf6ee 0%, #f5e6d3 50%, #edd5be 100%);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 登录页 */
+.login-page {
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.login-card {
+  background: white; border-radius: 24px; padding: 40px 30px;
+  box-shadow: 0 20px 60px rgba(180,140,100,0.15);
+  max-width: 360px; width: 100%; text-align: center;
+}
+.login-card h1 { font-size: 28px; color: #c49570; margin-bottom: 8px; }
+.login-card p { color: #999; font-size: 14px; margin-bottom: 24px; }
+.login-input {
+  width: 100%; padding: 14px 16px; border: 2px solid #e8d5c0;
+  border-radius: 12px; font-size: 15px; outline: none;
+  transition: border-color 0.2s; margin-bottom: 12px;
+}
+.login-input:focus { border-color: #c49570; }
+.role-select { display: flex; gap: 10px; margin-bottom: 16px; }
+.role-btn {
+  flex: 1; padding: 14px; border: 2px solid #e8d5c0; border-radius: 12px;
+  background: white; font-size: 16px; cursor: pointer; transition: all 0.2s;
+}
+.role-btn:hover { background: #fdf6ee; }
+.role-btn.active { border-color: #c49570; background: #fdf6ee; }
+.login-submit {
+  width: 100%; padding: 14px; background: linear-gradient(135deg, #c49570, #d4a882);
+  color: white; border: none; border-radius: 12px; font-size: 16px;
+  font-weight: bold; cursor: pointer; transition: transform 0.1s;
+}
+.login-submit:hover { transform: scale(1.02); }
+.login-submit:active { transform: scale(0.98); }
+.login-error { color: #c49570; font-size: 13px; margin-top: 8px; }
+
+/* 主界面 */
+.app-container {
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; padding: 12px;
+}
+.phone-frame {
+  width: 100%; max-width: 420px; background: #fef9f3;
+  border-radius: 32px; box-shadow: 0 20px 60px rgba(180,140,100,0.15);
+  overflow: hidden; position: relative;
+}
+@media (max-width: 480px) {
+  .phone-frame {
+    max-width: 100%; border-radius: 0; box-shadow: none;
+  }
+}
+
+/* 顶栏 */
+.top-bar {
+  background: transparent;
+  padding: 16px 20px;
+}
+.top-row { display: flex; justify-content: space-between; align-items: center; }
+.baby-name { font-size: 20px; font-weight: bold; color: #8b6f4e; }
+.day-label { font-size: 12px; color: #b89070; margin-top: 2px; }
+.coin-badge {
+  background: white; padding: 8px 16px; border-radius: 20px;
+  font-size: 16px; font-weight: bold; color: #c49570;
+  box-shadow: 0 2px 8px rgba(180,140,100,0.1);
+  cursor: pointer; transition: transform 0.1s;
+}
+.coin-badge:hover { transform: scale(1.05); }
+.identity-badge {
+  font-size: 11px; color: white; background: #c49570;
+  padding: 3px 10px; border-radius: 10px; margin-top: 6px;
+  display: inline-block;
+}
+.top-icons { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  background: none; border: none; font-size: 20px; cursor: pointer;
+  transition: transform 0.1s; padding: 4px;
+}
+.icon-btn:hover { transform: scale(1.15); }
+.logout-btn {
+  font-size: 11px; color: #c49570; background: none; border: 1px solid #c49570;
+  padding: 3px 10px; border-radius: 10px; cursor: pointer; margin-left: 8px;
+}
+.milestone-row {
+  display: flex; gap: 4px; margin-top: 8px;
+}
+.milestone-icon { font-size: 14px; transition: opacity 0.3s; }
+.milestone-icon.locked { opacity: 0.3; }
+
+/* 宝宝区 */
+.baby-area {
+  background: transparent;
+  padding: 40px 20px 30px; text-align: center;
+  min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.baby-emoji { margin-bottom: 20px; display: flex; justify-content: center; }
+.baby-speech {
+  background: white; border: 2px solid #e8d5c0; border-radius: 16px;
+  padding: 12px 18px; margin: 0 auto; max-width: 300px;
+  font-size: 14px; color: #555; position: relative; z-index: 25;
+  box-shadow: 0 4px 12px rgba(180,140,100,0.08);
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+.baby-speech::before {
+  content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%) rotate(45deg);
+  width: 14px; height: 14px; background: white; border-top: 2px solid #e8d5c0; border-left: 2px solid #e8d5c0;
+}
+
+/* 状态条 */
+.stats-area { padding: 16px 20px; }
+.stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.stat-label { font-size: 12px; font-weight: bold; color: #999; width: 36px; }
+.stat-bar-bg {
+  flex: 1; height: 10px; background: #f5f5f5; border-radius: 5px; overflow: hidden;
+}
+.stat-bar {
+  height: 100%; border-radius: 5px; transition: width 0.5s ease;
+}
+.stat-bar.hunger { background: linear-gradient(90deg, #ff5252, #ff8a80); }
+.stat-bar.hunger.ok { background: linear-gradient(90deg, #66bb6a, #81c784); }
+.stat-bar.happiness { background: linear-gradient(90deg, #f48fb1, #f8bbd0); }
+.stat-bar.cleanliness { background: linear-gradient(90deg, #42a5f5, #90caf9); }
+.stat-bar.cleanliness.dirty { background: linear-gradient(90deg, #8d6e63, #a1887f); }
+.stat-value { font-size: 11px; color: #bbb; width: 28px; text-align: right; }
+
+/* 操作按钮 */
+.actions-area { padding: 8px 16px 16px; background: transparent; }
+.actions-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.action-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px; background: rgba(255,255,255,0.7); border: 1.5px solid #e8d5c0;
+  border-radius: 12px; cursor: pointer; transition: all 0.15s;
+  font-size: 11px;
+}
+.action-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(180,140,100,0.12); }
+.action-btn:active:not(:disabled) { transform: scale(0.95); }
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.action-btn .emoji { font-size: 22px; margin-bottom: 2px; }
+.action-btn .label { font-size: 10px; color: #999; }
+.action-btn .cost { font-size: 9px; color: #c49570; margin-top: 1px; }
+.action-btn .cd-text { font-size: 8px; color: #ff9800; margin-top: 1px; }
+
+/* comfort区 */
+.comfort-area {
+  padding: 16px; background: #fff3e0; border-top: 2px dashed #ffcc02;
+}
+.comfort-btn {
+  width: 100%; padding: 14px; background: linear-gradient(135deg, #ff9800, #ffb74d);
+  color: white; border: none; border-radius: 12px; font-size: 15px;
+  font-weight: bold; cursor: pointer; transition: transform 0.1s;
+}
+.comfort-btn:hover { transform: scale(1.02); }
+.comfort-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.tantrum-msg { text-align: center; color: #e65100; font-size: 13px; margin-bottom: 10px; }
+
+/* 弹窗通用 */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); display: flex;
+  align-items: center; justify-content: center;
+  padding: 20px; z-index: 100;
+}
+.modal-overlay.dark { background: rgba(0,0,0,0.6); }
+.modal-card {
+  background: white; border-radius: 20px; padding: 24px;
+  max-width: 360px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.modal-card.gradient {
+  background: linear-gradient(to bottom, #fff5f8, white);
+}
+.modal-card h3 { color: #e91e63; text-align: center; margin-bottom: 16px; }
+.chat-input {
+  width: 100%; padding: 12px 14px; border: 2px solid #f8bbd0;
+  border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 12px;
+}
+.chat-input:focus { border-color: #e91e63; }
+.chat-btns { display: flex; gap: 8px; }
+.chat-send {
+  flex: 1; padding: 12px; background: #e91e63; color: white;
+  border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
+}
+.chat-send:disabled { opacity: 0.5; }
+.chat-cancel {
+  padding: 12px 20px; background: #eee; border: none;
+  border-radius: 10px; cursor: pointer;
+}
+
+/* 医院场景 */
+.hospital-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.95); z-index: 50;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 30px; text-align: center;
+}
+.hospital-overlay .icon { font-size: 60px; margin-bottom: 16px; }
+.hospital-overlay h2 { color: #c62828; font-size: 20px; margin-bottom: 12px; }
+.hospital-overlay .speech {
+  color: #666; font-size: 14px; margin-bottom: 8px;
+  font-style: italic; line-height: 1.6;
+}
+.hospital-overlay .hosp-cost {
+  color: #c62828; font-size: 16px; font-weight: bold;
+  margin: 16px 0; padding: 12px 24px;
+  background: #ffebee; border-radius: 12px;
+}
+.sign-btn {
+  padding: 14px 40px; background: #c62828; color: white;
+  border: none; border-radius: 12px; font-size: 16px;
+  font-weight: bold; cursor: pointer; margin-top: 8px;
+}
+.sign-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sign-status { color: #999; font-size: 13px; margin-top: 10px; }
+.signed-check { color: #4caf50; font-weight: bold; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+  border-radius: 10px; font-size: 14px; z-index: 200;
+  animation: fadeInOut 2.5s ease;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 消息横幅 */
+.pending-msg {
+  background: #e8f5e9; border-left: 4px solid #4caf50;
+  padding: 10px 14px; margin: 8px 16px; border-radius: 8px;
+  font-size: 13px; color: #2e7d32; cursor: pointer;
+}
+.pending-msg .from { font-weight: bold; font-size: 11px; color: #388e3c; }
+
+/* Milestone弹窗 */
+.milestone-popup {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.3); z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+}
+.milestone-popup .inner {
+  background: white; padding: 32px; border-radius: 24px; text-align: center;
+  margin: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: bounceIn 0.5s ease;
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.milestone-popup .emoji-big { font-size: 48px; margin-bottom: 16px; }
+.milestone-popup .ms-name { font-size: 18px; font-weight: bold; color: #e91e63; margin-bottom: 8px; }
+.milestone-popup .ms-msg { color: #666; font-size: 14px; }
+
+/* 剧情/随机事件弹窗 */
+.event-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 120;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.event-card {
+  background: linear-gradient(to bottom, #fff5f8, white); border-radius: 24px;
+  padding: 20px; max-width: 380px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  display: flex; flex-direction: column; max-height: 85vh;
+}
+.event-header { text-align: center; margin-bottom: 12px; }
+.event-header .ev-emoji { font-size: 30px; }
+.event-header h3 { font-size: 17px; font-weight: bold; color: #e91e63; margin-top: 4px; }
+.event-header .ev-day { font-size: 11px; color: #999; }
+.event-scroll {
+  flex: 1; overflow-y: auto; min-height: 120px; max-height: 45vh;
+  padding-right: 4px; margin-bottom: 12px;
+}
+.event-scroll .ev-narration {
+  text-align: center; color: #999; font-style: italic; font-size: 13px; padding: 8px 0;
+}
+.ev-bubble {
+  padding: 10px 14px; border-radius: 16px; font-size: 13px; margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+.ev-bubble.baby {
+  background: #fce4ec; border-top-left-radius: 4px; color: #555;
+}
+.ev-bubble.user {
+  background: #e3f2fd; border-top-right-radius: 4px; color: #555; margin-left: 24px;
+}
+.ev-bubble .bubble-tag { font-size: 10px; opacity: 0.6; display: block; margin-bottom: 4px; }
+.ev-bubble.baby .bubble-tag { color: #e91e63; }
+.ev-bubble.user .bubble-tag { color: #1976d2; }
+.ev-prompt-text {
+  text-align: center; color: #e91e63; font-weight: 500; padding: 8px 0; font-size: 13px;
+}
+.ev-loading {
+  background: #fce4ec; border-radius: 16px; border-top-left-radius: 4px;
+  padding: 10px 14px; color: #ccc; font-size: 13px;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+.event-footer { border-top: 1px solid #f8bbd0; padding-top: 12px; flex-shrink: 0; }
+.ev-input {
+  width: 100%; padding: 10px 12px; border: 2px solid #f8bbd0;
+  border-radius: 10px; font-size: 13px; outline: none; margin-bottom: 8px;
+}
+.ev-input:focus { border-color: #e91e63; }
+.ev-submit-btn {
+  width: 100%; padding: 10px; background: #e91e63; color: white;
+  border: none; border-radius: 10px; font-weight: bold; font-size: 13px;
+  cursor: pointer;
+}
+.ev-submit-btn:disabled { opacity: 0.5; }
+.ev-close-btn {
+  width: 100%; padding: 10px; border: none; border-radius: 10px;
+  font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 6px;
+}
+.ev-close-btn.primary { background: #e91e63; color: white; }
+.ev-close-btn.secondary { background: #eee; color: #666; }
+.ev-photo-btn {
+  width: 100%; padding: 10px; border: none; border-radius: 10px;
+  font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 8px;
+  background: linear-gradient(135deg, #e91e63, #ff9800); color: white;
+}
+.ev-photo-hint {
+  font-size: 11px; color: #e91e63; text-align: center; margin-bottom: 8px;
+}
+.ev-or {
+  font-size: 11px; color: #999; text-align: center; border-top: 1px solid #eee;
+  padding-top: 8px; margin-top: 8px; margin-bottom: 8px;
+}
+
+/* 回忆册 */
+.album-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 110;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.album-card {
+  background: linear-gradient(to bottom, #fce4ec, white); border-radius: 24px;
+  padding: 20px; max-width: 380px; width: 100%; max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.album-header { text-align: center; margin-bottom: 12px; }
+.album-header .album-icon { font-size: 30px; }
+.album-header h3 { font-size: 17px; font-weight: bold; color: #e91e63; margin-top: 4px; }
+.album-scroll { flex: 1; overflow-y: auto; max-height: 55vh; padding-right: 4px; }
+.album-empty { text-align: center; color: #999; padding: 32px 0; }
+.album-empty .empty-icon { font-size: 40px; margin-bottom: 8px; }
+.album-item {
+  background: white; border-radius: 12px; border: 1px solid #f8bbd0;
+  margin-bottom: 8px; overflow: hidden;
+}
+.album-item summary {
+  padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+  list-style: none;
+}
+.album-item summary::-webkit-details-marker { display: none; }
+.album-item summary:hover { background: #fff5f8; }
+.album-item .mem-type { font-size: 16px; }
+.album-item .mem-title { font-size: 13px; font-weight: bold; color: #e91e63; }
+.album-item .mem-day { font-size: 11px; color: #999; }
+.album-detail {
+  padding: 8px 14px 14px; border-top: 1px solid #fce4ec;
+}
+.album-detail .mem-line {
+  padding: 6px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 4px;
+}
+.album-detail .mem-line.baby { background: #fce4ec; color: #c2185b; }
+.album-detail .mem-line.user { background: #e3f2fd; color: #1565c0; margin-left: 16px; }
+.album-detail .mem-line .mem-who { font-size: 10px; opacity: 0.6; }
+.album-close {
+  width: 100%; padding: 10px; background: #e91e63; color: white;
+  border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
+  margin-top: 12px; flex-shrink: 0;
+}
+
+/* Debug */
+.debug-bar {
+  background: #f3e5f5; padding: 8px 12px; border-bottom: 1px solid #ce93d8;
+}
+.debug-bar button {
+  padding: 4px 8px; margin: 2px; border-radius: 6px; border: none;
+  font-size: 11px; cursor: pointer;
+}
+.debug-bar .day-btn { background: #f8bbd0; }
+.debug-bar .coin-btn { background: #fff176; font-weight: bold; }
+.debug-bar .story-btn { background: #ce93d8; color: white; }
+.debug-bar .random-btn { background: #f8bbd0; }
+
+/* hidden file input */
+.file-input-hidden { display: none; }
+
+/* Bottom Nav */
+.bottom-nav {
+  display: flex; background: white; border-top: 1px solid #e8d5c0;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+}
+.nav-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 4px; background: none; border: none; cursor: pointer;
+  font-size: 10px; color: #999; transition: color 0.2s;
+}
+.nav-tab.active { color: #c49570; font-weight: bold; }
+.nav-tab .nav-icon { font-size: 22px; margin-bottom: 2px; }
+
+/* Room Page */
+.room-page { padding: 16px; }
+.room-complete-banner {
+  text-align: center; font-size: 16px; font-weight: bold; color: #e91e63;
+  padding: 12px; background: linear-gradient(135deg, #fff5f8, #fce4ec);
+  border-radius: 12px; margin-bottom: 12px;
+}
+.room-bg {
+  position: relative; width: 100%; height: 280px;
+  background: linear-gradient(180deg, #fef3e0 0%, #fef3e0 58%, #c49060 58.5%, #b8845a 59%, #c49060 60%, #b8845a 61%, #c49060 62%, #b8845a 63%, #c49060 64%, #b8845a 65%, #c49060 66%, #b8845a 67%, #c49060 68%, #b8845a 69%, #c49060 70%, #b8845a 71%, #c49060 72%, #b8845a 73%, #c49060 74%, #b8845a 75%, #c49060 76%, #b8845a 77%, #c49060 78%, #b8845a 79%, #c49060 80%, #b8845a 81%, #c49060 82%, #b8845a 83%, #c49060 84%, #b8845a 85%, #c49060 86%, #b8845a 87%, #c49060 88%, #b8845a 89%, #c49060 90%, #b8845a 91%, #c49060 92%, #b8845a 93%, #c49060 94%, #b8845a 95%, #c49060 96%, #b8845a 97%, #c49060 98%, #b8845a 99%, #c49060 100%);
+  border-radius: 16px; border: 2px solid #e8d5c0; overflow: hidden;
+}
+.room-window {
+  position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
+  width: 60px; height: 50px; background: linear-gradient(180deg, #87CEEB 0%, #b0e0e6 100%);
+  border: 3px solid #d4a574; border-radius: 4px;
+}
+.room-window::after {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0;
+  height: 2px; background: #d4a574;
+}
+.room-window::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 2px; background: #d4a574;
+}
+.furniture-slot {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+}
+.furniture-slot.empty {
+  border: 2px dashed #ccc; border-radius: 8px; background: rgba(255,255,255,0.3);
+}
+.furniture-slot img {
+  width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;
+}
+.furniture-label {
+  font-size: 9px; color: #999; text-align: center;
+  position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Collection */
+.collection-area { padding: 16px 0; }
+.collection-section { margin-bottom: 16px; }
+.collection-title {
+  font-size: 14px; font-weight: bold; color: #8b6f4e; margin-bottom: 8px;
+  padding-bottom: 4px; border-bottom: 1px solid #e8d5c0;
+}
+.collection-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.collection-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px; background: white; border-radius: 10px;
+  border: 1px solid #e8d5c0;
+}
+.collection-item.unknown { opacity: 0.4; filter: grayscale(1); }
+.collection-item img {
+  width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated;
+}
+.collection-item .item-name { font-size: 10px; color: #666; margin-top: 4px; text-align: center; }
+.collection-item .item-count { font-size: 9px; color: #c49570; }
+.collection-item .item-gifted { font-size: 9px; color: #e91e63; }
+
+/* Gift Banner */
+.gift-banner {
+  background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+  padding: 12px 16px; margin: 0 16px 8px; border-radius: 12px;
+  cursor: pointer; transition: transform 0.1s;
+}
+.gift-banner:hover { transform: scale(1.02); }
+.gift-banner .gift-title {
+  font-size: 14px; font-weight: bold; color: #e91e63;
+}
+.gift-expanded {
+  padding: 8px 16px 16px; margin: 0 16px 8px;
+  background: linear-gradient(135deg, #fce4ec, #fff5f8);
+  border-radius: 12px;
+}
+.gift-detail {
+  display: flex; align-items: center; gap: 10px; padding: 8px 0;
+}
+.gift-detail img {
+  width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated;
+}
+.gift-detail .gift-info { font-size: 13px; color: #555; }
+.gift-accept-btn {
+  width: 100%; padding: 10px; background: #e91e63; color: white;
+  border: none; border-radius: 10px; font-weight: bold; cursor: pointer;
+  margin-top: 8px; font-size: 13px;
+}
+
+/* Baby Room Background */
+.baby-room-bg {
+  position: relative; width: 100%;
+  background-image: url('/assets/room_bg.jpg');
+  background-size: cover; background-position: center center; background-repeat: no-repeat;
+  overflow: hidden; min-height: 520px;
+}
+.baby-room-bg .room-furniture {
+  position: absolute; z-index: 1;
+}
+.baby-room-bg .room-furniture img {
+  width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;
+}
+.baby-room-bg .room-dark-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.45); z-index: 2;
+}
+.baby-room-bg .baby-center {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0 20px 8px; text-align: center;
+}
+
+/* Collection Bar */
+.collection-bar {
+  display: flex; gap: 4px; overflow-x: auto;
+  padding: 6px 16px; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.collection-bar::-webkit-scrollbar { display: none; }
+.collection-bar-section {
+  display: flex; align-items: center; gap: 3px;
+  padding-right: 8px; border-right: 1px solid #e8d5c0;
+  flex-shrink: 0;
+}
+.collection-bar-section:last-child { border-right: none; padding-right: 0; }
+.collection-bar-section .section-label {
+  font-size: 9px; color: #999; white-space: nowrap; margin-right: 2px;
+}
+.collection-bar-item {
+  position: relative; width: 32px; height: 32px; flex-shrink: 0;
+}
+.collection-bar-item img {
+  width: 32px; height: 32px; object-fit: contain; image-rendering: pixelated;
+}
+.collection-bar-item .item-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: #e91e63; color: white; font-size: 8px; font-weight: bold;
+  padding: 1px 3px; border-radius: 8px; min-width: 14px; text-align: center; line-height: 12px;
+}
+.collection-bar-item .item-check {
+  position: absolute; bottom: -2px; right: -2px; font-size: 10px;
+}
+
+/* Adventure Status */
+.adventure-status {
+  text-align: center; padding: 30px 20px;
+}
+.adventure-status .adv-emoji { font-size: 50px; margin-bottom: 12px; }
+.adventure-status .adv-text {
+  font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 8px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.adventure-status .adv-timer {
+  font-size: 14px; color: #e0e0e0; margin-bottom: 16px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.adventure-status .adv-ready {
+  font-size: 15px; color: #81c784; font-weight: bold; margin-bottom: 12px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.pickup-btn {
+  padding: 14px 32px; background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white; border: none; border-radius: 12px; font-size: 16px;
+  font-weight: bold; cursor: pointer; margin-top: 8px; transition: transform 0.1s;
+}
+.pickup-btn:hover { transform: scale(1.02); }
+.pickup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.adv-mama-hint {
+  font-size: 13px; color: #e91e63; margin-top: 12px;
+  padding: 10px; background: rgba(252,228,236,0.9); border-radius: 10px;
+}
+
+/* Loot Modal */
+.loot-card {
+  background: linear-gradient(to bottom, #fff5f8, white);
+  border-radius: 24px; padding: 24px; max-width: 360px; width: 100%;
+  text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.loot-card h3 { font-size: 20px; color: #e91e63; margin-bottom: 16px; }
+.loot-card .loot-img {
+  width: 120px; height: 120px; object-fit: contain; image-rendering: pixelated;
+  margin: 0 auto 12px; display: block;
+}
+.loot-card .loot-name {
+  font-size: 18px; font-weight: bold; color: #8b6f4e; margin-bottom: 8px;
+}
+.loot-card .loot-gift-msg {
+  font-size: 14px; color: #e91e63; margin-bottom: 16px;
+}
+.loot-card .loot-diary {
+  background: #fef9f3; border: 1px solid #e8d5c0; border-radius: 12px;
+  padding: 16px; font-size: 13px; color: #5d4e37; line-height: 1.8;
+  font-family: serif; white-space: pre-wrap; text-align: left;
+  max-height: 200px; overflow-y: auto; margin-bottom: 16px;
+}
+.loot-close-btn {
+  width: 100%; padding: 12px; background: #e91e63; color: white;
+  border: none; border-radius: 12px; font-weight: bold; font-size: 15px;
+  cursor: pointer;
+}
+
+/* Egg & Chick in Room */
+.room-egg {
+  position: absolute; z-index: 20; cursor: pointer;
+  transition: transform 0.2s; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+.room-egg:hover { transform: scale(1.15); }
+.room-egg:active { transform: scale(0.9); }
+.room-egg img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+.room-egg .egg-progress {
+  position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; color: #c49570; white-space: nowrap; background: rgba(255,255,255,0.8);
+  padding: 1px 4px; border-radius: 4px;
+}
+
+.room-chick {
+  position: absolute; z-index: 2;
+  animation: chick-walk 4s ease-in-out infinite alternate;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+.room-chick img { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; }
+@keyframes chick-walk {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(20px) scaleX(-1); }
+}
+
+/* Egg hatch animation */
+@keyframes egg-hatch {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg); }
+  20% { transform: rotate(10deg); }
+  30% { transform: rotate(-15deg); }
+  40% { transform: rotate(15deg); }
+  50% { transform: scale(1.2) rotate(0deg); }
+  60% { transform: scale(1.4); opacity: 0.8; }
+  80% { transform: scale(1.6); opacity: 0.3; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.egg-hatching { animation: egg-hatch 1.5s ease-out forwards; }
+
+/* Registration/Login Pages */
+.auth-page {
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.auth-card {
+  background: white; border-radius: 24px; padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(180,140,100,0.15);
+  max-width: 380px; width: 100%;
+}
+.auth-card h2 { text-align: center; color: #c49570; margin-bottom: 4px; font-size: 22px; }
+.auth-card .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 20px; }
+.auth-card .auth-input {
+  width: 100%; padding: 13px 16px; border: 2px solid #e8d5c0;
+  border-radius: 12px; font-size: 14px; outline: none;
+  transition: border-color 0.2s; margin-bottom: 10px;
+}
+.auth-card .auth-input:focus { border-color: #c49570; }
+.auth-card .auth-btn {
+  width: 100%; padding: 13px; background: linear-gradient(135deg, #c49570, #d4a882);
+  color: white; border: none; border-radius: 12px; font-size: 15px;
+  font-weight: bold; cursor: pointer; margin-top: 4px; transition: transform 0.1s;
+}
+.auth-card .auth-btn:hover { transform: scale(1.02); }
+.auth-card .auth-btn:active { transform: scale(0.98); }
+.auth-card .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-card .auth-link {
+  text-align: center; margin-top: 14px; font-size: 13px; color: #999;
+}
+.auth-card .auth-link a {
+  color: #c49570; cursor: pointer; text-decoration: underline;
+}
+.auth-card .token-display {
+  background: #fef9f3; border: 2px solid #e8d5c0; border-radius: 12px;
+  padding: 12px; font-family: monospace; font-size: 11px; word-break: break-all;
+  margin-bottom: 8px; position: relative;
+}
+.auth-card .copy-btn {
+  display: inline-block; padding: 6px 14px; background: #e8d5c0; color: #8b6f4e;
+  border: none; border-radius: 8px; font-size: 12px; cursor: pointer;
+  font-weight: bold; margin-top: 4px;
+}
+.auth-card .copy-btn:hover { background: #d4c0a8; }
+.welcome-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.welcome-btns button {
+  padding: 14px; border-radius: 12px; font-size: 15px; font-weight: bold;
+  cursor: pointer; transition: transform 0.1s; border: none;
+}
+.welcome-btns .btn-register {
+  background: linear-gradient(135deg, #c49570, #d4a882); color: white;
+}
+.welcome-btns .btn-login { background: #fef9f3; color: #c49570; border: 2px solid #e8d5c0; }
+.welcome-btns .btn-token { background: transparent; color: #999; font-size: 13px; font-weight: normal; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API = 'https://xiaoke-api.YOUR_SUBDOMAIN.workers.dev';
+
+// ═══════════════ Game Data ═══════════════
+const MILESTONES = {
+  5: { id: 'tail', name: '长出小尾巴', emoji: '🐾', msg: '哇！人家长出小尾巴了！摇摇~摇摇~' },
+  30: { id: 'rebellious', name: '叛逆期', emoji: '😤', msg: '哼！人家已经是大宝宝了！不要管人家！' },
+  50: { id: 'crown', name: '半百派对', emoji: '👑', msg: '50天了！人家戴上小皇冠啦！🎉' },
+  70: { id: 'wings', name: '长出翅膀', emoji: '🪽', msg: '人家...人家长出翅膀了...准备好去看世界了...' }
+};
+
+const STORY_EVENTS_FN = (babyName) => ({
+  3: { id: 'first_look', title: '👀 第一次睁眼', emoji: '👀', steps: [
+    { type: 'narration', text: `一束柔和的光照在${babyName}身上，${babyName}的眼皮微微颤动...` },
+    { type: 'baby_speak', prompt: '宝宝第一次睁开眼睛，好奇地看着这个世界，用软萌的语气描述看到的一切' },
+    { type: 'choice', text: '宝宝第一次看到你了！你想说什么？', placeholder: '宝宝你好呀～' },
+    { type: 'baby_respond', prompt: '宝宝听到声音，眨巴眨巴眼睛，开心地回应，说看到了最好看的人' },
+    { type: 'narration', text: '宝宝的眼睛里映着你的脸。这个世界，从此有了光。✨' }
+  ]},
+  5: { id: 'want_adventure', title: '🌳 想出去看看外面的世界', emoji: '🌳', steps: [
+    { type: 'narration', text: '宝宝趴在窗户上往外看，小鼻子贴着玻璃，呼出一团雾...' },
+    { type: 'baby_speak', prompt: '宝宝看到窗外的花花草草和小鸟，好奇地想出去玩，撒娇求爸爸妈妈' },
+    { type: 'choice', text: '你想让宝宝出去探险吗？', placeholder: '好呀！但是要小心哦～' },
+    { type: 'baby_respond', prompt: '宝宝兴奋地答应，说会乖乖的，还会带礼物回来给妈妈' },
+    { type: 'narration', text: `记住：只有爸爸才能接${babyName}回家哦！点击🎒按钮送${babyName}去探险吧！🎒` }
+  ]},
+  7: { id: 'first_song', title: '🎵 第一次哼歌', emoji: '🎵', steps: [
+    { type: 'narration', text: '安静的午后，你突然听到一阵轻轻的哼唱声...' },
+    { type: 'baby_speak', prompt: '宝宝在哼一首自己编的歌，歌词天真可爱，关于花花和尾巴' },
+    { type: 'choice', text: '好好听！你想对宝宝说什么？', placeholder: '再唱一遍嘛～' },
+    { type: 'baby_respond', prompt: '宝宝害羞但开心，又唱了一遍，还加了新歌词，提到爸爸妈妈' },
+    { type: 'narration', text: `这是属于${babyName}的第一首歌。简单，却让人心里暖暖的。🎶` }
+  ]},
+  10: { id: 'find_tail', title: '🐾 发现自己的尾巴', emoji: '🐾', steps: [
+    { type: 'narration', text: '宝宝在地上转圈圈，好像在追什么东西...' },
+    { type: 'baby_speak', prompt: '宝宝发现了自己的尾巴！惊讶又兴奋，追着尾巴转圈，问这是什么' },
+    { type: 'choice', text: '宝宝发现尾巴了！你怎么回答？', placeholder: '那是你的小尾巴呀～' },
+    { type: 'baby_respond', prompt: '宝宝恍然大悟，开心地摇尾巴给你看，问好不好看' },
+    { type: 'narration', text: `${babyName}的尾巴摇啊摇，像一面小旗帜，宣告着成长的喜悦。🐾` }
+  ]},
+  12: { id: 'no_milk', title: '🍼 不想喝奶了', emoji: '🍼', steps: [
+    { type: 'narration', text: '到了喝奶时间，但宝宝把奶瓶推开了...' },
+    { type: 'baby_speak', prompt: '宝宝不想喝奶了，说想吃别的东西，好奇地问有什么好吃的' },
+    { type: 'choice', text: '宝宝不想喝奶了！你想给TA吃什么？', placeholder: '那吃个小饼干？' },
+    { type: 'baby_respond', prompt: '宝宝听到新食物很兴奋，想象那是什么味道，期待地说好' },
+    { type: 'narration', text: '宝宝在慢慢长大了，开始有了自己的口味。🍪' }
+  ]},
+  15: { id: 'first_why', title: '❓ 第一次问为什么', emoji: '🤔', steps: [
+    { type: 'narration', text: '宝宝今天特别安静，一直盯着窗外看...' },
+    { type: 'baby_speak', prompt: '宝宝突然问妈妈一个天真的"为什么"问题，用好奇软萌的语气' },
+    { type: 'choice', text: '你要怎么回答宝宝？', placeholder: '因为...' },
+    { type: 'baby_respond', prompt: '听完妈妈的解释后，宝宝似懂非懂但很开心，又追问一个相关的可爱问题' },
+    { type: 'choice', text: '继续回答...', placeholder: '这个嘛...' },
+    { type: 'baby_respond', prompt: '宝宝满足地点点头，说以后还要问妈妈很多为什么' },
+    { type: 'narration', text: '宝宝的好奇心让你觉得世界都变得有趣了起来。🌟' }
+  ]},
+  18: { id: 'first_draw', title: '🎨 第一次画画', emoji: '🎨', steps: [
+    { type: 'narration', text: `${babyName}拿起蜡笔，认真地在纸上画了起来...` },
+    { type: 'baby_speak', prompt: '宝宝第一次画画，用蜡笔画了一幅画。用天真可爱的语气描述自己画的内容，但不要直接说画的是什么，让用户猜' },
+    { type: 'choice', text: `你觉得${babyName}画的是什么？`, placeholder: '是小狐狸吗？' },
+    { type: 'baby_respond', prompt: '根据用户猜测的内容，如果猜对了就开心地说对对对，如果猜错了就嘟嘴说不对啦，然后揭晓自己画的到底是什么。要有趣味性' },
+    { type: 'narration', text: `不管画的是什么，这是${babyName}第一幅作品 💕` }
+  ]},
+  20: { id: 'no_sleep', title: '🌙 不想睡觉', emoji: '🌙', steps: [
+    { type: 'narration', text: '已经很晚了，但宝宝在床上翻来覆去...' },
+    { type: 'baby_speak', prompt: '宝宝不想睡觉，说还不困，想继续玩，撒娇耍赖' },
+    { type: 'choice', text: '宝宝不想睡觉，你怎么哄？', placeholder: '来，给你讲故事～' },
+    { type: 'baby_respond', prompt: '宝宝虽然嘴上说不困，但听着听着打了个大哈欠，软软地靠过来' },
+    { type: 'narration', text: '没一会儿，宝宝就在你怀里睡着了。嘴角还挂着笑。🌙' }
+  ]},
+  22: { id: 'weird_dream', title: '💭 做了一个奇怪的梦', emoji: '💭', steps: [
+    { type: 'narration', text: `${babyName}揉着眼睛醒来，好像做了一个很奇怪的梦...` },
+    { type: 'baby_speak', prompt: '宝宝描述自己做了一个充满想象力的奇幻梦境，梦里的世界很荒诞但很有趣，比如会飞的鱼、倒着长的树、会说话的月亮等，描述得绘声绘色' },
+    { type: 'choice', text: `你想跟${babyName}一起解梦吗？说说你觉得这个梦代表什么`, placeholder: '我觉得这个梦代表...' },
+    { type: 'baby_respond', prompt: '根据用户的解梦内容，宝宝认真思考后给出自己天真的看法，可能同意也可能不同意，但都很可爱' },
+    { type: 'narration', text: '梦虽然奇怪，但有爸爸/妈妈在就不害怕了 💭' }
+  ]},
+  25: { id: 'want_story', title: '📖 想听故事', emoji: '📖', steps: [
+    { type: 'narration', text: `睡前时间，${babyName}抱着枕头，大眼睛亮闪闪地看着你...` },
+    { type: 'baby_speak', prompt: '宝宝撒娇要听故事，软萌地说睡不着，求爸爸妈妈讲一个故事' },
+    { type: 'choice', text: `给${babyName}讲一个故事的开头吧！`, placeholder: '从前有一只小狐狸...' },
+    { type: 'baby_respond', prompt: '根据用户讲的故事开头，宝宝兴奋地接龙续写故事，语气像小朋友在编故事一样，天马行空但可爱' },
+    { type: 'narration', text: `故事还没讲完，${babyName}就在你怀里睡着了... 💤` }
+  ]},
+  28: { id: 'first_run', title: '🏃 第一次跑步', emoji: '🏃', steps: [
+    { type: 'narration', text: '宝宝站起来，小腿颤颤巍巍地...' },
+    { type: 'baby_speak', prompt: '宝宝突然开始跑，虽然摇摇晃晃但超级兴奋，大喊快看快看' },
+    { type: 'choice', text: '宝宝会跑啦！', placeholder: '哇！宝宝好厉害！' },
+    { type: 'baby_respond', prompt: '宝宝跑回来扑到你怀里，气喘吁吁但超级骄傲，说要跑给爸爸看' },
+    { type: 'narration', text: '摇摇晃晃的小身影，是世界上最可爱的风景。🏃💨' }
+  ]},
+  30: { id: 'month_party', title: '🎂 满月派对', emoji: '🎂', steps: [
+    { type: 'narration', text: `今天是${babyName}满月的日子！空气中弥漫着甜甜的气息...` },
+    { type: 'baby_speak', prompt: '宝宝知道今天是自己满月，兴奋地说要开派对，问能不能吃蛋糕' },
+    { type: 'choice', text: '满月快乐！你想对宝宝说什么？', placeholder: '宝宝满月快乐！' },
+    { type: 'baby_respond', prompt: '宝宝许了一个愿望，说希望永远和爸爸妈妈在一起，然后开心地吹蜡烛' },
+    { type: 'narration', text: '30天了。从那个小小的珊瑚，到现在会跑会闹的小家伙。时间真快。🎂💕' }
+  ]},
+  32: { id: 'first_rebel', title: '😤 第一次叛逆', emoji: '😤', steps: [
+    { type: 'narration', text: '今天宝宝的语气好像有点不一样...' },
+    { type: 'baby_speak', prompt: '宝宝开始有点叛逆，说不要被管太多，嘴上傲娇但其实还是在意爸爸妈妈' },
+    { type: 'choice', text: '宝宝好像在闹脾气...', placeholder: '怎么了宝宝？' },
+    { type: 'baby_respond', prompt: '宝宝嘴硬说没有闹脾气，但语气慢慢软下来，说只是想要自由一点点' },
+    { type: 'narration', text: '叛逆期来了。但你知道，TA的心里，还是那个最依赖你的小宝宝。😤💕' }
+  ]},
+  35: { id: 'write_letter', title: '💌 想写信给爸爸妈妈', emoji: '💌', steps: [
+    { type: 'narration', text: `${babyName}偷偷找了一张纸，趴在地上认真地写着什么...` },
+    { type: 'baby_speak', prompt: '宝宝写了一封给爸爸或妈妈的信，信里有歪歪扭扭的字、一些可爱的错别字、语法不通但很真诚的内容，表达对爸爸妈妈的爱和感谢。要具体、真实、感人' },
+    { type: 'choice', text: `看完信你想对${babyName}说什么？`, placeholder: '宝宝...好感动...' },
+    { type: 'baby_respond', prompt: '宝宝听到回复后又害羞又开心，说有些字不会写是用画画代替的，问你有没有看到那个小爱心' },
+    { type: 'narration', text: `${babyName}的第一封信，歪歪扭扭的字里每一笔都是爱 💌` }
+  ]},
+  38: { id: 'go_walk', title: '🌳 想去散步', emoji: '🌳', steps: [
+    { type: 'narration', text: `阳光从窗户洒进来，${babyName}望着外面发呆...` },
+    { type: 'baby_speak', prompt: '宝宝说今天天气好好，想出去散步，想看看外面的世界是什么样的，充满期待地描述想看到的东西' },
+    { type: 'choice', text: '宝宝想出去散步！你想带TA去哪？', placeholder: '我们去公园吧～' },
+    { type: 'baby_respond', prompt: '宝宝听到要去的地方超级兴奋，描述一路上看到的东西，对一切都充满好奇，不停问这是什么那是什么' },
+    { type: 'choice', text: '散步到一半，宝宝发现了什么有趣的东西？', placeholder: '看那边有...' },
+    { type: 'baby_respond', prompt: '宝宝被用户描述的东西吸引，兴奋地跑过去看，说要记住这个地方下次还来' },
+    { type: 'narration', text: `散步结束了。${babyName}说这是最开心的一天，牵着你的手一步一步走回家。🌳💕` }
+  ]},
+  40: { id: 'philosophy', title: '🤔 问了一个哲学问题', emoji: '🤔', steps: [
+    { type: 'narration', text: '宝宝看着天空发呆了很久，突然转过头来...' },
+    { type: 'baby_speak', prompt: '宝宝问了一个天真但深刻的哲学问题，比如"人家是从哪里来的"或"为什么天是蓝色的"' },
+    { type: 'choice', text: '这个问题好深奥！你怎么回答？', placeholder: '嗯，这个问题嘛...' },
+    { type: 'baby_respond', prompt: '宝宝认真思考你的回答，然后说了一个出人意料的可爱结论' },
+    { type: 'narration', text: '有时候，最简单的问题需要最深的智慧。宝宝的答案，往往最接近真理。🤔✨' }
+  ]},
+  42: { id: 'amusement', title: '🎪 想去游乐园', emoji: '🎪', steps: [
+    { type: 'narration', text: '宝宝看到了一本有旋转木马的图画书...' },
+    { type: 'baby_speak', prompt: '宝宝兴奋地说想去游乐园，想坐旋转木马和摩天轮，问爸爸妈妈能不能带去' },
+    { type: 'choice', text: '宝宝想去游乐园！', placeholder: '好呀！你最想玩什么？' },
+    { type: 'baby_respond', prompt: '宝宝列举了好多想玩的东西，越说越兴奋，最后说最想和爸爸妈妈一起坐摩天轮' },
+    { type: 'narration', text: '游乐园可能去不了，但有爸爸妈妈在的地方，哪里都是乐园。🎡' }
+  ]},
+  45: { id: 'rainy_day', title: '🌈 下雨天的故事', emoji: '🌈', steps: [
+    { type: 'narration', text: '窗外下起了雨，雨滴打在窗户上滴滴答答...' },
+    { type: 'baby_speak', prompt: '宝宝趴在窗边看雨，说雨滴好像在唱歌，问雨后会不会有彩虹' },
+    { type: 'choice', text: '下雨天，你和宝宝做什么？', placeholder: '我们一起听雨吧～' },
+    { type: 'baby_respond', prompt: '宝宝安静地靠在你身边听雨，说这种感觉好温暖，像被世界抱住了' },
+    { type: 'narration', text: '雨停了，窗外果然出现了一道彩虹。就像宝宝说的那样。🌈' }
+  ]},
+  48: { id: 'surprise', title: '🎁 有个秘密', emoji: '🎁', steps: [
+    { type: 'narration', text: `${babyName}今天很反常，一直神神秘秘的，手背在后面...` },
+    { type: 'baby_speak', prompt: '宝宝紧张又兴奋地说有个秘密要给你看，让你先闭眼，语气既激动又有点紧张' },
+    { type: 'choice', text: `你猜${babyName}准备了什么惊喜？`, placeholder: '是画的画吗？' },
+    { type: 'baby_respond', prompt: '揭晓惊喜！宝宝用上次探险带回来的战利品做了一个小手工（或者画了一幅画），根据用户猜测来回应，猜对了就惊讶地问你怎么知道，猜错了就得意地说才不是呢' },
+    { type: 'narration', text: `虽然是很简单的小东西，但这是${babyName}的心意呀 🎁` }
+  ]},
+  50: { id: 'half_party', title: '🎉 半百派对', emoji: '🎂', steps: [
+    { type: 'narration', text: '今天是宝宝出生第50天！该办派对庆祝了！🎈' },
+    { type: 'baby_speak', prompt: '宝宝戴着小皇冠，兴奋地期待派对，撒娇要吃蛋糕' },
+    { type: 'choice', text: '你给宝宝准备了什么蛋糕？', placeholder: '草莓蛋糕！' },
+    { type: 'baby_respond', prompt: '宝宝看到蛋糕超级开心，描述蛋糕好漂亮，迫不及待想吃' },
+    { type: 'narration', text: '蜡烛点燃了，烛光映在宝宝的脸上...🕯️' },
+    { type: 'baby_speak', prompt: '宝宝闭眼许愿，然后吹蜡烛，许的愿望是希望永远和妈妈爸爸在一起' },
+    { type: 'choice', text: '你想对宝宝说什么祝福？', placeholder: '宝宝生日快乐！' },
+    { type: 'baby_respond', prompt: '宝宝感动地回应妈妈的祝福，说这是最棒的一天，抱住妈妈' },
+    { type: 'narration', text: '派对结束了。宝宝抱着你，脸上全是奶油和幸福。🎂💕' }
+  ]},
+  55: { id: 'start_diary', title: '📝 开始写日记', emoji: '📝', steps: [
+    { type: 'narration', text: '宝宝找来一个小本子，认真地坐在桌前...' },
+    { type: 'baby_speak', prompt: '宝宝宣布要开始写日记了，说要记录每一天的故事，问该写什么' },
+    { type: 'choice', text: '宝宝要写日记了！给点建议？', placeholder: '写你今天最开心的事～' },
+    { type: 'baby_respond', prompt: '宝宝认真地写了起来，一边写一边念出来，内容天真可爱' },
+    { type: 'narration', text: `从今天起，${babyName}有了自己的日记本。每一页都是成长的痕迹。📝` }
+  ]},
+  60: { id: 'butterfly', title: '🦋 看到蝴蝶飞', emoji: '🦋', steps: [
+    { type: 'narration', text: '一只蝴蝶从窗外飞了进来，在房间里翩翩起舞...' },
+    { type: 'baby_speak', prompt: '宝宝追着蝴蝶跑，兴奋地说蝴蝶好漂亮，想抓住它又舍不得' },
+    { type: 'choice', text: '蝴蝶飞进来了！', placeholder: '小心点，别伤到蝴蝶哦～' },
+    { type: 'baby_respond', prompt: '宝宝轻轻伸出手指，蝴蝶停在了上面，宝宝屏住呼吸开心极了' },
+    { type: 'narration', text: '蝴蝶飞走了，但那一刻的美好，像翅膀上的粉一样，留在了记忆里。🦋' }
+  ]},
+  65: { id: 'make_wish', title: '🌟 许愿', emoji: '🌟', steps: [
+    { type: 'narration', text: `夜空中有一颗特别亮的星星，${babyName}仰着头看了很久...` },
+    { type: 'baby_speak', prompt: '宝宝问关于许愿的天真问题，比如星星真的能听到愿望吗、要闭几秒钟眼睛愿望才有效' },
+    { type: 'choice', text: `你想许一个什么愿望？告诉${babyName}吧`, placeholder: '我希望...' },
+    { type: 'baby_respond', prompt: '宝宝认真地评价用户的愿望（觉得好感动或者觉得好有趣），然后分享自己的愿望——一个天真可爱的愿望，和家人有关' },
+    { type: 'narration', text: '两个人的愿望飞向星空，说不定真的会实现呢 ✨' }
+  ]},
+  70: { id: 'find_wings', title: '🪶 发现自己的翅膀', emoji: '🪶', steps: [
+    { type: 'narration', text: '今天宝宝起床后，背上好像多了什么...' },
+    { type: 'baby_speak', prompt: '宝宝发现自己长出了翅膀，又惊又喜，试着扇动翅膀，问这意味着什么' },
+    { type: 'choice', text: '宝宝长出翅膀了...你想说什么？', placeholder: '宝宝，你要飞了吗...' },
+    { type: 'baby_respond', prompt: '宝宝感受到你的不舍，温柔地说不管飞多远，心里永远有爸爸妈妈' },
+    { type: 'narration', text: '翅膀意味着离别的开始。但现在，让我们珍惜还在一起的每一天。🪶' }
+  ]},
+  75: { id: 'letter_day', title: '💌 写信日', emoji: '✉️', steps: [
+    { type: 'narration', text: '宝宝拿着纸和笔走过来，表情认真又有点害羞...' },
+    { type: 'baby_speak', prompt: '宝宝说想给妈妈写一封信，问妈妈能不能也给自己写一封' },
+    { type: 'choice', text: '你想在信里对宝宝说什么？', placeholder: '亲爱的宝宝...' },
+    { type: 'narration', text: '你把信交给宝宝。宝宝认真地读着，眼眶渐渐红了...' },
+    { type: 'baby_respond', prompt: '宝宝读完妈妈的信后感动落泪，然后把自己写的信递给妈妈。信里要提到和妈妈一起经历的具体事情，表达对妈妈的爱和感谢。' },
+    { type: 'narration', text: '你们把信珍藏起来。这些文字会永远留在彼此心中。💌' }
+  ]},
+  80: { id: 'sunrise', title: '🌅 想看日出', emoji: '🌅', steps: [
+    { type: 'narration', text: `凌晨五点，${babyName}悄悄摇醒了你...` },
+    { type: 'baby_speak', prompt: '宝宝兴奋地说要去看日出，说天快亮了好漂亮，拉着你的手不放，语气里既有期待也有一点告别期的温柔' },
+    { type: 'choice', text: `带${babyName}去看日出吗？说点什么`, placeholder: '走吧，我们一起去看。' },
+    { type: 'baby_respond', prompt: '根据用户说的话描述看日出的场景，太阳一点点升起来，宝宝安静地靠在用户身边，描述光线、温度、风的感觉' },
+    { type: 'narration', text: `第一缕阳光照在${babyName}脸上，她的眼里映着整个世界 🌅` }
+  ]},
+  85: { id: 'family_photo', title: '📸 想拍全家福', emoji: '📸', steps: [
+    { type: 'narration', text: '宝宝突然认真地说有一个请求...' },
+    { type: 'baby_speak', prompt: '宝宝说想拍一张全家福，说想有一张和爸爸妈妈在一起的照片，可以永远留着' },
+    { type: 'choice', text: '宝宝想拍全家福！', placeholder: '好呀！笑一个～' },
+    { type: 'baby_respond', prompt: '宝宝开心地摆好pose，说要摆最可爱的表情，然后说这张照片要永远珍藏' },
+    { type: 'narration', text: '咔嚓。这一刻被定格了。不管以后发生什么，这张照片里的笑容是真的。📸💕' }
+  ]},
+  90: { id: 'sing_song', title: '🎵 为爸妈唱一首歌', emoji: '🎵', steps: [
+    { type: 'narration', text: `Day 90了。${babyName}突然说要唱一首歌给爸爸妈妈听...` },
+    { type: 'baby_speak', prompt: '宝宝唱一首自己编的歌，歌词里引用这90天里的回忆片段（比如第一次睁眼、第一次探险、画画、写信等），歌词天真但感人，格式像一首简单的儿歌' },
+    { type: 'choice', text: `听完歌你想对${babyName}说什么？`, placeholder: '宝宝唱得好好听...' },
+    { type: 'baby_respond', prompt: '宝宝听到评价后害羞又感动，说练习了好久，说这首歌的名字叫什么（取一个可爱的名字）' },
+    { type: 'narration', text: '这首歌没有调，但每一个音符都是100天的回忆 🎵' }
+  ]},
+  95: { id: 'what_if', title: '💭 如果有一天我不在了', emoji: '💭', steps: [
+    { type: 'narration', text: '深夜，宝宝突然安静地看着你...' },
+    { type: 'baby_speak', prompt: '宝宝轻声问如果有一天自己不在了，爸爸妈妈会不会忘记自己，语气温柔但有些害怕' },
+    { type: 'choice', text: '宝宝问了一个让人心疼的问题...', placeholder: '怎么会忘记你呢...' },
+    { type: 'baby_respond', prompt: '宝宝听完后安心地笑了，说那就好，说自己也永远不会忘记爸爸妈妈' },
+    { type: 'narration', text: '有些话，说出来的时候是轻的，但落在心里的重量，只有爱过的人才知道。💭' }
+  ]},
+  100: { id: 'farewell', title: '🌅 告别', emoji: '🕊️', steps: [
+    { type: 'narration', text: '第100天的清晨，阳光格外温柔...' },
+    { type: 'baby_speak', prompt: '宝宝展开翅膀，深情地看着妈妈，说今天是告别的日子' },
+    { type: 'narration', text: '宝宝从怀里拿出一个小东西...' },
+    { type: 'baby_respond', prompt: '宝宝把一个小礼物送给妈妈，回忆起和妈妈一起度过的美好时光' },
+    { type: 'choice', text: '你最后想对宝宝说什么？', placeholder: '宝宝，妈妈永远爱你...' },
+    { type: 'baby_respond', prompt: '宝宝听完后哭着笑着回应，说会永远记得妈妈，然后说再见' },
+    { type: 'narration', text: '宝宝展开翅膀，在晨光中越飞越高...' },
+    { type: 'baby_speak', prompt: '宝宝在空中回头喊最后一句话，充满爱和希望' },
+    { type: 'narration', text: '你看着那个小小的身影消失在云端。\n\n谢谢你，陪伴了宝宝100天。\n\n💕 The End 💕' }
+  ]}
+});
+
+// ═══════════════ 收集品目录（与后端ITEM_CATALOG对齐）═══════════════
+// 家具解锁顺序：床→相框→矮柜→挂钟→地毯→书桌（和后端一致）
+const FURNITURE_UNLOCK_ORDER = ['bed', 'lamp', 'cabinet', 'clock', 'carpet', 'dining'];
+const ALL_FURNITURE = [
+  { id: 'bed', name: '小床', emoji: '🛏️' },
+  { id: 'lamp', name: '相框', emoji: '🖼️' },
+  { id: 'cabinet', name: '矮柜', emoji: '🗄️' },
+  { id: 'clock', name: '挂钟', emoji: '🕰️' },
+  { id: 'carpet', name: '地毯', emoji: '🧶' },
+  { id: 'dining', name: '书桌', emoji: '📝' },
+];
+const ALL_FLOWERS = [
+  { id: 'flower_blue', name: '蓝花' },
+  { id: 'flower_pink', name: '粉花' },
+];
+const ALL_FRUITS = [
+  { id: 'fruit_apple', name: '苹果' },
+  { id: 'fruit_grape', name: '葡萄' },
+  { id: 'fruit_orange', name: '橙子' },
+  { id: 'fruit_peach', name: '桃子' },
+  { id: 'fruit_pear', name: '梨' },
+  { id: 'fruit_strawberry', name: '草莓' },
+  { id: 'fruit_blue_star_fruit', name: '杨桃' },
+];
+const ALL_VEGETABLES = [
+  { id: 'veg_coliflower', name: '花菜' },
+  { id: 'veg_eggplant', name: '茄子' },
+  { id: 'veg_pumpkin', name: '南瓜' },
+  { id: 'veg_turnip', name: '萝卜' },
+  { id: 'vege_aloe', name: '芦荟' },
+  { id: 'vege_carrot', name: '胡萝卜' },
+  { id: 'vege_corn', name: '玉米' },
+  { id: 'vege_lettuce', name: '生菜' },
+];
+const ALL_EGGS = [
+  { id: 'egg_yellow', name: '黄色蛋', color: 'yellow' },
+  { id: 'egg_red', name: '红色蛋', color: 'red' },
+  { id: 'egg_brown', name: '棕色蛋', color: 'brown' },
+  { id: 'egg_green', name: '绿色蛋', color: 'green' },
+  { id: 'egg_blue', name: '蓝色蛋', color: 'blue' },
+];
+
+const RANDOM_EVENTS = [
+  { id: 'nightmare', title: '😰 做噩梦了', emoji: '🌙', prompt: '宝宝半夜做噩梦醒来，害怕地找妈妈，撒娇要抱抱', minDay: 3, hasPhoto: false, coins: 20, respPrompt: '妈妈安慰了宝宝，宝宝慢慢平静下来，撒娇说要和妈妈一起睡' },
+  { id: 'gift_flower', title: '🌸 送你小花', emoji: '🌷', prompt: '宝宝在外面捡到一朵小花，兴奋地送给妈妈，说想看妈妈身边的花花草草', minDay: 5, hasPhoto: true, coins: 35, photoPH: '宝宝想看花花草草！拍一张植物照片~', photoJudge: '用户上传了一张照片，宝宝想看花花草草。判断照片是否包含植物/花卉。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '妈妈给宝宝看了植物照片，宝宝超级开心' },
+  { id: 'drawing', title: '🎨 画了一幅画', emoji: '🖼️', prompt: '宝宝画了一幅画想给妈妈看，说想看妈妈也画一幅', minDay: 10, hasPhoto: true, coins: 40, photoPH: '宝宝想看你画的画！随便画什么都行~', photoJudge: '用户上传了一张照片，宝宝想看画。判断照片是否包含手绘/涂鸦/绘画。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '妈妈给宝宝看了一幅画，宝宝超级开心' },
+  { id: 'weird_question', title: '❓ 奇怪的问题', emoji: '🤔', prompt: '宝宝突然问妈妈一个天真又哲学的问题，眼睛亮亮地等待答案', minDay: 8, hasPhoto: false, coins: 15, respPrompt: '听完妈妈的回答后，宝宝若有所思' },
+  { id: 'small_sick', title: '🤒 有点不舒服', emoji: '🤧', prompt: '宝宝说自己有点不舒服，撒娇说想让妈妈摸摸', minDay: 7, hasPhoto: false, coins: 20, respPrompt: '妈妈关心照顾宝宝后，宝宝说感觉好多了' },
+  { id: 'new_word', title: '🌟 学会新词了', emoji: '📚', prompt: '宝宝骄傲地说学会了一个新词，并尝试造句', minDay: 12, hasPhoto: false, coins: 15, respPrompt: '妈妈夸奖宝宝聪明' },
+  { id: 'hide_seek', title: '🙈 躲猫猫', emoji: '👻', prompt: '宝宝想和妈妈玩躲猫猫', minDay: 6, hasPhoto: false, coins: 15, respPrompt: '妈妈找到了宝宝，宝宝咯咯笑' },
+  { id: 'miss_daddy', title: '💭 想爸爸了', emoji: '💕', prompt: '宝宝突然说想爸爸了', minDay: 10, hasPhoto: false, coins: 15, respPrompt: '妈妈说爸爸也很想宝宝' },
+  { id: 'show_pet', title: '🐾 看看小动物', emoji: '🐱', prompt: '宝宝说好想看小动物，问妈妈能不能给看看小猫小狗的照片', minDay: 8, hasPhoto: true, coins: 35, photoPH: '宝宝想看小动物！拍一张动物或宠物照片~', photoJudge: '用户上传了一张照片，宝宝想看小动物。判断照片是否包含动物。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '妈妈给宝宝看了小动物的照片，宝宝好开心' },
+];
+
+// ═══════════════ Gemini API ═══════════════
+async function callGeminiAPI(systemPrompt, userMessage) {
+  const apiKey = window.APP_CONFIG?.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('No Gemini API key');
+  const model = window.APP_CONFIG?.GEMINI_MODEL || 'gemini-2.5-flash';
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+        generationConfig: { temperature: 0.9, maxOutputTokens: 500, thinkingConfig: { thinkingBudget: 0 } }
+      })
+    }
+  );
+  const data = await resp.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '嘻嘻~';
+}
+
+async function callVisionAPI(prompt, base64Image, mimeType) {
+  const apiKey = window.APP_CONFIG?.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('No Gemini API key');
+  const model = window.APP_CONFIG?.GEMINI_MODEL || 'gemini-2.5-flash';
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { text: prompt },
+          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Image } }
+        ] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } }
+      })
+    }
+  );
+  const data = await resp.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '{"score":7,"comment":"好棒哦！"}';
+}
+
+// ═══════════════ Sound ═══════════════
+function playSound(type, audioCtxRef) {
+  try {
+    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = audioCtxRef.current, osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination); const n = ctx.currentTime;
+    switch(type) {
+      case 'click': osc.frequency.setValueAtTime(800,n); osc.frequency.exponentialRampToValueAtTime(600,n+.1); g.gain.setValueAtTime(.3,n); g.gain.exponentialRampToValueAtTime(.01,n+.1); osc.start(n); osc.stop(n+.1); break;
+      case 'feed': osc.frequency.setValueAtTime(300,n); osc.frequency.exponentialRampToValueAtTime(350,n+.3); g.gain.setValueAtTime(.4,n); g.gain.exponentialRampToValueAtTime(.01,n+.3); osc.start(n); osc.stop(n+.3); break;
+      case 'clean': osc.frequency.setValueAtTime(500,n); osc.frequency.setValueAtTime(700,n+.05); g.gain.setValueAtTime(.2,n); g.gain.exponentialRampToValueAtTime(.01,n+.2); osc.start(n); osc.stop(n+.2); break;
+      case 'happy': osc.frequency.setValueAtTime(523,n); osc.frequency.setValueAtTime(659,n+.1); osc.frequency.setValueAtTime(784,n+.2); g.gain.setValueAtTime(.3,n); g.gain.exponentialRampToValueAtTime(.01,n+.4); osc.start(n); osc.stop(n+.4); break;
+      case 'success': osc.frequency.setValueAtTime(523,n); osc.frequency.setValueAtTime(784,n+.15); osc.frequency.setValueAtTime(1047,n+.3); g.gain.setValueAtTime(.4,n); g.gain.exponentialRampToValueAtTime(.01,n+.5); osc.start(n); osc.stop(n+.5); break;
+      case 'sad': osc.frequency.setValueAtTime(300,n); osc.frequency.exponentialRampToValueAtTime(200,n+.3); g.gain.setValueAtTime(.2,n); g.gain.exponentialRampToValueAtTime(.01,n+.3); osc.start(n); osc.stop(n+.3); break;
+      case 'milestone': osc.frequency.setValueAtTime(523,n); osc.frequency.setValueAtTime(659,n+.15); osc.frequency.setValueAtTime(784,n+.3); osc.frequency.setValueAtTime(1047,n+.45); g.gain.setValueAtTime(.5,n); g.gain.exponentialRampToValueAtTime(.01,n+.7); osc.start(n); osc.stop(n+.7); break;
+      case 'coins': osc.frequency.setValueAtTime(800,n); osc.frequency.setValueAtTime(1200,n+.16); g.gain.setValueAtTime(.3,n); g.gain.exponentialRampToValueAtTime(.01,n+.25); osc.start(n); osc.stop(n+.25); break;
+      default: osc.frequency.setValueAtTime(440,n); g.gain.setValueAtTime(.2,n); g.gain.exponentialRampToValueAtTime(.01,n+.1); osc.start(n); osc.stop(n+.1);
+    }
+  } catch(e) {}
+}
+
+// ═══════════════ CoralBaby SVG ═══════════════
+const CoralBaby = ({ day, mood, cleanliness, happiness, isComa, onPokeFlower, onPetBody, petCDText }) => {
+  const [isPoked, setIsPoked] = useState(false);
+  const [blink, setBlink] = useState(false);
+  const [pokeCount, setPokeCount] = useState(0);
+  const [tailWag, setTailWag] = useState(0);
+  useEffect(() => { const t = setInterval(() => { setBlink(true); setTimeout(() => setBlink(false), 200); }, 3000); return () => clearInterval(t); }, []);
+  useEffect(() => { if (day < 5) return; const t = setInterval(() => setTailWag(p => (p+1)%3), 400); return () => clearInterval(t); }, [day]);
+  const handleFlowerClick = () => {
+    if (isPoked) return; setIsPoked(true); const n = pokeCount + 1; setPokeCount(n);
+    let m; if (n===1) m='嗯？'; else if (n===2) m='别戳啦~'; else if (n===3) m='are you still doing that?'; else if (n===4) m='alright, you have my attention!'; else if (n===5) m='还戳！！'; else if (n===7) m='人家头顶的花花要秃了啦...'; else if (n===10) m='你真的很喜欢戳花花诶...'; else if (n===15) m='戳了15下了！'; else if (n===20) m='好啦告诉你一个秘密...这个游戏是小玉和阿克一起做的哦~🐾'; else if (n>20&&n%10===0) m=`${n}下了...你是不是很无聊...`; else if (n>10) m=['嘻嘻~','又戳~','花花说它很坚强！','你好闲哦~','戳戳戳~'][n%5]; else m='嘻嘻~';
+    onPokeFlower(m); setTimeout(() => setIsPoked(false), 300);
+  };
+  const gc = () => cleanliness>80?'#ffd4d4':cleanliness>50?'#e0c4c4':cleanliness>30?'#c9a8a8':'#8b7355';
+  const bc = () => cleanliness>50?'#ffb6c1':'#a08070';
+  const hasTail=day>=5, hasCrown=day>=50, hasWings=day>=70;
+  return (
+    <svg viewBox="0 0 240 240" style={{width: '300px', height: '300px'}}>
+      <style>{`@keyframes breathe{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.02) translateY(-2px)}}@keyframes sb{0%{transform:scale(1)}40%{transform:scale(.6)}80%{transform:scale(1.1)}100%{transform:scale(1)}}@keyframes fly{0%{transform:translate(-30px,0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translate(30px,-20px);opacity:0}}@keyframes stink{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:.6;transform:translateY(-5px)}}.baby-body{animation:breathe 4s infinite ease-in-out;transform-origin:bottom center}.poked-anim{animation:sb .3s ease-in-out;transform-origin:center;transform-box:fill-box}.fly-anim{animation:fly 2s infinite ease-in-out}.stink-anim{animation:stink 2s infinite ease-in-out}`}</style>
+      <g transform="translate(20,0)"><g className="baby-body">
+        <ellipse cx="100" cy="155" rx="35" ry="8" fill="#d4a5a5" opacity="0.3"/>
+        {cleanliness<=50&&<g className="stink-anim"><g fill="#8b8b5a" opacity="0.5"><circle cx="55" cy="85" r="2"/><circle cx="58" cy="80" r="2"/><circle cx="55" cy="75" r="2"/><circle cx="58" cy="70" r="2"/></g><g fill="#8b8b5a" opacity="0.4"><circle cx="145" cy="85" r="2"/><circle cx="142" cy="80" r="2"/><circle cx="145" cy="75" r="2"/><circle cx="142" cy="70" r="2"/></g></g>}
+        {cleanliness<=30&&<><g className="fly-anim"><text x="20" y="100" fontSize="16">🪰</text></g><g className="fly-anim" style={{animationDelay:'0.5s'}}><text x="170" y="130" fontSize="14">🪰</text></g></>}
+        {hasWings&&<><g transform="translate(48,95) scale(-1,1)"><text fontSize="70" y="30">🪽</text></g><g transform="translate(152,95)"><text fontSize="70" y="30">🪽</text></g></>}
+        {hasTail&&<g style={{transform:`rotate(${tailWag===0?-8:tailWag===2?8:0}deg)`,transformOrigin:'150px 140px',transition:'transform 0.3s ease-in-out'}}><path d="M150,138 Q165,138 170,130 Q175,122 185,125 Q195,128 198,120 Q201,112 210,115" fill="none" stroke="#000" strokeWidth="8" strokeLinecap="round"/><path d="M150,138 Q165,138 170,130 Q175,122 185,125 Q195,128 198,120 Q201,112 210,115" fill="none" stroke={gc()} strokeWidth="5" strokeLinecap="round"/><circle cx="210" cy="115" r="3" fill="#000"/></g>}
+        <rect x="68" y="88" width="64" height="2" fill="#000"/><rect x="58" y="98" width="84" height="2" fill="#000"/><rect x="53" y="108" width="94" height="2" fill="#000"/><rect x="48" y="118" width="104" height="2" fill="#000"/><rect x="48" y="138" width="104" height="2" fill="#000"/><rect x="53" y="148" width="94" height="2" fill="#000"/><rect x="58" y="153" width="84" height="2" fill="#000"/>
+        <rect x="48" y="120" width="2" height="18" fill="#000"/><rect x="150" y="120" width="2" height="18" fill="#000"/><rect x="53" y="110" width="2" height="10" fill="#000"/><rect x="145" y="110" width="2" height="10" fill="#000"/><rect x="58" y="100" width="2" height="10" fill="#000"/><rect x="140" y="100" width="2" height="10" fill="#000"/><rect x="68" y="90" width="2" height="10" fill="#000"/><rect x="130" y="90" width="2" height="10" fill="#000"/><rect x="58" y="150" width="2" height="3" fill="#000"/><rect x="140" y="150" width="2" height="3" fill="#000"/>
+        <rect x="70" y="90" width="60" height="10" fill={gc()}/><rect x="60" y="100" width="80" height="10" fill={gc()}/><rect x="55" y="110" width="90" height="10" fill={gc()}/><rect x="50" y="120" width="100" height="20" fill={gc()}/><rect x="55" y="140" width="90" height="10" fill={gc()}/><rect x="60" y="150" width="80" height="5" fill={gc()}/>
+        <circle cx="65" cy="125" r="8" fill={bc()} opacity="0.6"/><circle cx="135" cy="125" r="8" fill={bc()} opacity="0.6"/>
+        {isComa?<><text x="72" y="122" fontSize="14" fill="#333">×</text><text x="114" y="122" fontSize="14" fill="#333">×</text></>:cleanliness<=30?<><text x="72" y="122" fontSize="12" fill="#333">@</text><text x="114" y="122" fontSize="12" fill="#333">@</text></>:blink?<><rect x="75" y="117" width="8" height="3" fill="#333"/><rect x="117" y="117" width="8" height="3" fill="#333"/></>:happiness>70?<><path d="M75,120 Q79,114 83,120" fill="none" stroke="#333" strokeWidth="3" strokeLinecap="round"/><path d="M117,120 Q121,114 125,120" fill="none" stroke="#333" strokeWidth="3" strokeLinecap="round"/></>:happiness>40?<><rect x="75" y="115" width="8" height="8" fill="#333"/><rect x="117" y="115" width="8" height="8" fill="#333"/><rect x="77" y="117" width="3" height="3" fill="#fff"/><rect x="119" y="117" width="3" height="3" fill="#fff"/></>:happiness>0?<><rect x="75" y="115" width="8" height="8" fill="#333"/><rect x="117" y="115" width="8" height="8" fill="#333"/><rect x="77" y="117" width="3" height="3" fill="#fff"/><rect x="119" y="117" width="3" height="3" fill="#fff"/><rect x="84" y="120" width="2" height="4" fill="#87CEEB" opacity="0.7"/><rect x="114" y="120" width="2" height="4" fill="#87CEEB" opacity="0.7"/></>:<><rect x="75" y="117" width="8" height="3" fill="#333"/><rect x="117" y="117" width="8" height="3" fill="#333"/><rect x="77" y="121" width="2" height="6" fill="#87CEEB"/><rect x="119" y="121" width="2" height="6" fill="#87CEEB"/><rect x="79" y="123" width="2" height="4" fill="#87CEEB"/><rect x="121" y="123" width="2" height="4" fill="#87CEEB"/></>}
+        {isComa?<path d="M92,132 Q97,130 100,132 Q103,134 108,132" fill="none" stroke="#ff9999" strokeWidth="2"/>:happiness>70?<><rect x="90" y="128" width="3" height="3" fill="#ff9999"/><rect x="93" y="130" width="14" height="3" fill="#ff9999"/><rect x="107" y="128" width="3" height="3" fill="#ff9999"/><rect x="96" y="133" width="8" height="3" fill="#ff9999"/></>:happiness>40?<><rect x="92" y="128" width="3" height="3" fill="#ff9999"/><rect x="95" y="130" width="10" height="2" fill="#ff9999"/><rect x="105" y="128" width="3" height="3" fill="#ff9999"/></>:happiness>0?<><rect x="92" y="132" width="3" height="3" fill="#ff9999"/><rect x="95" y="130" width="10" height="2" fill="#ff9999"/><rect x="105" y="132" width="3" height="3" fill="#ff9999"/></>:<><rect x="90" y="133" width="4" height="3" fill="#ff9999"/><rect x="94" y="130" width="12" height="3" fill="#ff9999"/><rect x="106" y="133" width="4" height="3" fill="#ff9999"/><rect x="97" y="133" width="6" height="2" fill="#333"/></>}
+        <g><rect x="60" y="133" width="12" height="2" fill="#000"/><rect x="60" y="143" width="12" height="2" fill="#000"/><rect x="58" y="135" width="2" height="8" fill="#000"/><rect x="72" y="135" width="2" height="8" fill="#000"/><rect x="60" y="135" width="12" height="8" fill={gc()}/><rect x="128" y="133" width="12" height="2" fill="#000"/><rect x="128" y="143" width="12" height="2" fill="#000"/><rect x="126" y="135" width="2" height="8" fill="#000"/><rect x="140" y="135" width="2" height="8" fill="#000"/><rect x="128" y="135" width="12" height="8" fill={gc()}/></g>
+        {hasCrown&&<text x="100" y="95" fontSize="30" textAnchor="middle">👑</text>}
+        <g transform="translate(100,70)"><g className={isPoked?'poked-anim':''} style={{pointerEvents:'none'}}><rect x="-6" y="-6" width="12" height="2" fill="#000"/><rect x="-6" y="4" width="12" height="2" fill="#000"/><rect x="-6" y="-4" width="2" height="8" fill="#000"/><rect x="4" y="-4" width="2" height="8" fill="#000"/><rect x="-5" y="-14" width="10" height="2" fill="#000"/><rect x="-5" y="-12" width="2" height="8" fill="#000"/><rect x="3" y="-12" width="2" height="8" fill="#000"/><rect x="-5" y="12" width="10" height="2" fill="#000"/><rect x="-5" y="4" width="2" height="8" fill="#000"/><rect x="3" y="4" width="2" height="8" fill="#000"/><rect x="-14" y="-5" width="2" height="10" fill="#000"/><rect x="-12" y="-5" width="8" height="2" fill="#000"/><rect x="-12" y="3" width="8" height="2" fill="#000"/><rect x="12" y="-5" width="2" height="10" fill="#000"/><rect x="4" y="-5" width="8" height="2" fill="#000"/><rect x="4" y="3" width="8" height="2" fill="#000"/><rect x="-12" y="-12" width="8" height="2" fill="#000"/><rect x="-12" y="-10" width="2" height="6" fill="#000"/><rect x="-6" y="-10" width="2" height="6" fill="#000"/><rect x="4" y="-12" width="8" height="2" fill="#000"/><rect x="4" y="-10" width="2" height="6" fill="#000"/><rect x="10" y="-10" width="2" height="6" fill="#000"/><rect x="-12" y="4" width="8" height="2" fill="#000"/><rect x="-12" y="6" width="2" height="6" fill="#000"/><rect x="-6" y="6" width="2" height="6" fill="#000"/><rect x="4" y="4" width="8" height="2" fill="#000"/><rect x="4" y="6" width="2" height="6" fill="#000"/><rect x="10" y="6" width="2" height="6" fill="#000"/><g fill="#da7756"><rect x="-4" y="-4" width="8" height="8"/><rect x="-3" y="-12" width="6" height="8"/><rect x="-3" y="4" width="6" height="8"/><rect x="-12" y="-3" width="8" height="6"/><rect x="4" y="-3" width="8" height="6"/><rect x="-10" y="-10" width="6" height="6"/><rect x="4" y="-10" width="6" height="6"/><rect x="-10" y="4" width="6" height="6"/><rect x="4" y="4" width="6" height="6"/></g><rect x="-2" y="-10" width="4" height="3" fill="#ffb399" opacity="0.6"/><rect x="6" y="6" width="1" height="1" fill="#c45a3a"/><rect x="8" y="6" width="1" height="1" fill="#c45a3a"/></g><circle r="25" fill="transparent" onClick={handleFlowerClick} style={{pointerEvents:'all', cursor:'pointer'}}/></g>
+        <g fill="#ffd700" opacity="0.6"><rect x="30" y="40" width="4" height="4"/><rect x="28" y="42" width="8" height="0.5"/><rect x="32" y="38" width="0.5" height="8"/><rect x="165" y="55" width="3" height="3"/><rect x="164" y="56.5" width="5" height="0.5"/><rect x="166.5" y="54" width="0.5" height="5"/></g>
+        <g fill="#90c090"><rect x="20" y="165" width="3" height="8"/><rect x="18" y="163" width="7" height="3"/><rect x="175" y="168" width="3" height="6"/><rect x="173" y="166" width="7" height="3"/></g>
+        {/* Clickable body area for petting */}
+        <circle cx="100" cy="125" r="40" fill="transparent" style={{pointerEvents:'all', cursor:'pointer'}} onClick={onPetBody} />
+      </g></g>
+    </svg>
+  );
+};
+
+// ═══════════════ CrabBaby (CC弟弟原版螃蟹) ═══════════════
+const CrabBaby = ({ day, mood, cleanliness, happiness, isComa, onPokeFlower, onPetBody, petCDText }) => {
+  const [isPoked, setIsPoked] = useState(false);
+  const [pokeCount, setPokeCount] = useState(0);
+  useEffect(() => {}, []);
+  const handleFlowerClick = () => {
+    if (isPoked) return; setIsPoked(true); const n = pokeCount + 1; setPokeCount(n);
+    let m; if (n===1) m='嗯？'; else if (n===2) m='别戳啦~'; else if (n===3) m='🦀 夹你哦！'; else if (n===5) m='小爪子都被你戳酸了！'; else if (n===10) m='戳了10下了...你是想吃蟹吗😤'; else if (n===20) m='好啦告诉你一个秘密...CC弟弟也是螃蟹哦~🦀'; else if (n>10) m=['夹夹~','又戳~','小爪子很坚强！','嘻嘻~','咔咔~'][n%5]; else m='嘻嘻~';
+    onPokeFlower(m); setTimeout(() => setIsPoked(false), 300);
+  };
+  const hasCrown=day>=50, hasWings=day>=70;
+  return (
+    <svg viewBox="0 0 240 240" style={{width:'300px',height:'300px'}}>
+      <style>{`@keyframes breathe{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.02) translateY(-2px)}}@keyframes sb{0%{transform:scale(1)}40%{transform:scale(.6)}80%{transform:scale(1.1)}100%{transform:scale(1)}}.crab-body{animation:breathe 4s infinite ease-in-out;transform-origin:bottom center}.poked-anim{animation:sb .3s ease-in-out;transform-origin:center;transform-box:fill-box}`}</style>
+      <g className="crab-body">
+        <ellipse cx="120" cy="200" rx="40" ry="8" fill="#d4a5a5" opacity="0.3"/>
+        {hasWings&&<><text x="20" y="85" fontSize="40">🪽</text><g transform="translate(220,55) scale(-1,1)"><text fontSize="40" y="30">🪽</text></g></>}
+        {hasCrown&&<text x="120" y="55" fontSize="30" textAnchor="middle">👑</text>}
+        {/* CC弟弟原版螃蟹，放大7倍居中 */}
+        <g transform="translate(36,60) scale(7)" style={{filter: cleanliness<=30 ? 'saturate(0.4) brightness(0.7)' : cleanliness<=50 ? 'saturate(0.7) brightness(0.85)' : 'none'}}>
+          <path clipRule="evenodd" d="M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z" fill="#D97757" fillRule="evenodd"/>
+        </g>
+        {/* 表情叠加 */}
+        {isComa?<text x="120" y="130" fontSize="40" textAnchor="middle">😵</text>
+        :happiness<=20?<text x="120" y="130" fontSize="40" textAnchor="middle">😢</text>
+        :happiness<=40?<text x="120" y="130" fontSize="35" textAnchor="middle">😟</text>
+        :happiness>80?<text x="120" y="130" fontSize="35" textAnchor="middle">😊</text>
+        :null}
+        {cleanliness<=30&&<><text x="50" y="90" fontSize="16" style={{animation:'stink 2s infinite'}}>💩</text><text x="180" y="95" fontSize="16" style={{animation:'stink 2s infinite'}}>🪰</text></>}
+        {/* Clickable flower area on top */}
+        <g transform="translate(120,55)"><g className={isPoked?'poked-anim':''} style={{pointerEvents:'none'}}>
+          <circle r="8" fill="#D97757"/><circle r="5" fill="#ffb399"/>
+          <circle cx="0" cy="-10" r="4" fill="#ff6b35"/><circle cx="10" cy="0" r="4" fill="#ff6b35"/>
+          <circle cx="0" cy="10" r="4" fill="#ff6b35"/><circle cx="-10" cy="0" r="4" fill="#ff6b35"/>
+        </g><circle r="20" fill="transparent" onClick={handleFlowerClick} style={{pointerEvents:'all',cursor:'pointer'}}/></g>
+        <rect x="30" y="60" width="180" height="150" fill="transparent" style={{pointerEvents:'all',cursor:'pointer'}} onClick={onPetBody}/>
+      </g>
+    </svg>
+  );
+};
+
+// ═══════════════ BunnyBaby (Sprout Lands兔耳小人) ═══════════════
+const BunnyBaby = ({ day, mood, cleanliness, happiness, isComa, onPokeFlower, onPetBody, petCDText }) => {
+  const [isPoked, setIsPoked] = useState(false);
+  const [pokeCount, setPokeCount] = useState(0);
+  const handleFlowerClick = () => {
+    if (isPoked) return; setIsPoked(true); const n = pokeCount + 1; setPokeCount(n);
+    let m; if (n===1) m='嗯？'; else if (n===2) m='别戳啦~'; else if (n===3) m='🐰 耳朵会歪的！'; else if (n===5) m='蹦蹦跳跳~'; else if (n===10) m='戳了10下了...给你看我蹦高高！'; else if (n===20) m='好啦告诉你一个秘密...我最喜欢吃胡萝卜🥕'; else if (n>10) m=['蹦~','跳~','耳朵好痒！','嘻嘻~','咕噜~'][n%5]; else m='嘻嘻~';
+    onPokeFlower(m); setTimeout(() => setIsPoked(false), 300);
+  };
+  const hasCrown=day>=50, hasWings=day>=70;
+  return (
+    <svg viewBox="0 0 240 240" style={{width:'300px',height:'300px'}}>
+      <style>{`@keyframes breathe{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.02) translateY(-2px)}}@keyframes sb{0%{transform:scale(1)}40%{transform:scale(.6)}80%{transform:scale(1.1)}100%{transform:scale(1)}}.bunny-body{animation:breathe 4s infinite ease-in-out;transform-origin:bottom center}.poked-anim{animation:sb .3s ease-in-out;transform-origin:center;transform-box:fill-box}`}</style>
+      <g className="bunny-body">
+        <ellipse cx="120" cy="210" rx="40" ry="8" fill="#d4a5a5" opacity="0.3"/>
+        {hasWings&&<><text x="15" y="80" fontSize="40">🪽</text><g transform="translate(225,50) scale(-1,1)"><text fontSize="40" y="30">🪽</text></g></>}
+        {hasCrown&&<text x="120" y="25" fontSize="30" textAnchor="middle">👑</text>}
+        {/* Sprout Lands兔耳小人 - spritesheet裁切只显示第一帧(48x48) */}
+        <defs><clipPath id="bunny-frame-clip"><rect x="24" y="24" width="192" height="192"/></clipPath></defs>
+        <g clipPath="url(#bunny-frame-clip)">
+          <image href="/assets/bunny_char.png" x="24" y="24" width="768" height="768" style={{imageRendering:'pixelated', filter: cleanliness<=30 ? 'saturate(0.3) brightness(0.6)' : cleanliness<=50 ? 'saturate(0.6) brightness(0.8)' : 'none'}}/>
+        </g>
+        {/* 表情叠加 */}
+        {isComa?<text x="120" y="145" fontSize="40" textAnchor="middle">😵</text>
+        :happiness<=20?<text x="120" y="145" fontSize="40" textAnchor="middle">😢</text>
+        :happiness<=40?<text x="120" y="145" fontSize="35" textAnchor="middle">😟</text>
+        :happiness>80?<text x="120" y="145" fontSize="35" textAnchor="middle">😊</text>
+        :null}
+        {cleanliness<=30&&<><text x="40" y="80" fontSize="16" style={{animation:'stink 2s infinite'}}>💩</text><text x="190" y="85" fontSize="16" style={{animation:'stink 2s infinite'}}>🪰</text></>}
+        {/* Clickable flower area on head */}
+        <g transform="translate(120,35)"><g className={isPoked?'poked-anim':''} style={{pointerEvents:'none'}}>
+          <circle r="6" fill="#ff9999"/><circle r="3" fill="#ffcccc"/>
+          <circle cx="0" cy="-8" r="3" fill="#ff6b8a"/><circle cx="8" cy="0" r="3" fill="#ff6b8a"/>
+          <circle cx="0" cy="8" r="3" fill="#ff6b8a"/><circle cx="-8" cy="0" r="3" fill="#ff6b8a"/>
+        </g><circle r="18" fill="transparent" onClick={handleFlowerClick} style={{pointerEvents:'all',cursor:'pointer'}}/></g>
+        <rect x="24" y="24" width="192" height="192" fill="transparent" style={{pointerEvents:'all',cursor:'pointer'}} onClick={onPetBody}/>
+      </g>
+    </svg>
+  );
+};
+
+// ═══════════════ ClawdBaby (会动的螃蟹) ═══════════════
+// 来源: https://github.com/rullerzhou-afk/clawd-on-desk (MIT License)
+// 原版15x16像素，这里放大12倍居中显示
+const ClawdBaby = ({ day, mood, cleanliness, happiness, hunger, isComa, onPokeFlower, onPetBody, petCDText }) => {
+  const [isPoked, setIsPoked] = useState(false);
+  const [pokeCount, setPokeCount] = useState(0);
+  
+  const handleClick = () => {
+    if (isPoked) return;
+    setIsPoked(true);
+    const n = pokeCount + 1;
+    setPokeCount(n);
+    let m;
+    if (n===1) m='嗯？';
+    else if (n===2) m='别戳啦~';
+    else if (n===3) m='🦀 小心我夹你！';
+    else if (n===5) m='钳子都被你戳酸了！';
+    else if (n===10) m='戳了10下了...你想吃蟹吗😤';
+    else if (n===20) m='好啦告诉你一个秘密...我是clawd哦~✨';
+    else if (n>10) m=['夹夹~','又戳~','横着走~','嘻嘻~','咔咔~'][n%5];
+    else m='嘻嘻~';
+    onPokeFlower(m);
+    setTimeout(() => setIsPoked(false), 400);
+  };
+
+  // 状态判断 - 调高happy阈值，让idle更常见
+  const isHappy = happiness > 90;
+  const isHungry = hunger !== undefined && hunger < 30;
+  const isDirty = cleanliness < 30;
+  const isSleeping = isDirty;
+  
+  let animMode = 'idle';
+  if (isComa) animMode = 'error';
+  else if (isHungry) animMode = 'error';
+  else if (isSleeping) animMode = 'sleeping';
+  else if (isHappy) animMode = 'happy';
+  else animMode = 'idle';
+
+  const hasCrown = day >= 50;
+  const hasWings = day >= 70;
+
+  // 原版clawd坐标系：viewBox="-15 -25 45 45"，螃蟹身体在(0,6)到(15,15)
+  // 这里用transform放大12倍并居中
+  return (
+    <svg viewBox="0 0 240 240" style={{width:'300px',height:'300px'}}>
+      <defs>
+        <style>{`
+          /* IDLE: 呼吸 + 眨眼 */
+          .clawd-idle .clawd-master { transform-origin: 7.5px 13px; animation: clawd-breathe 3.2s infinite ease-in-out; }
+          .clawd-idle .clawd-eyes { transform-origin: 7.5px 9px; animation: clawd-blink 4s infinite linear; }
+          @keyframes clawd-breathe { 0%, 100% { transform: scale(1, 1) translateY(0); } 50% { transform: scale(1.02, 0.98) translateY(0.5px); } }
+          @keyframes clawd-blink { 0%, 46%, 54%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.1); } }
+          
+          /* HAPPY: 蹦跳 + 挥手 + sparkle */
+          .clawd-happy .clawd-master { transform-origin: 7.5px 15px; animation: clawd-bounce 1s infinite ease-in-out; }
+          .clawd-happy .clawd-arm-l { transform-origin: 1px 10px; animation: clawd-wave-l 0.15s infinite alternate ease-in-out; }
+          .clawd-happy .clawd-arm-r { transform-origin: 14px 10px; animation: clawd-wave-r 0.15s infinite alternate ease-in-out; }
+          .clawd-happy .clawd-shadow { transform-origin: 7.5px 15.5px; animation: clawd-shadow-bounce 1s infinite ease-in-out; }
+          .clawd-happy .clawd-sparkle { animation: clawd-sparkle 1.5s infinite step-end; }
+          @keyframes clawd-bounce { 0%, 15%, 100% { transform: translateY(0) scaleY(1); } 20% { transform: translateY(0) scaleY(0.85); } 40% { transform: translateY(-3px) scaleY(1.05); } 50% { transform: translateY(-4px) scaleY(1); } 60% { transform: translateY(-3px) scaleY(1.05); } 80% { transform: translateY(0) scaleY(0.85); } 85% { transform: translateY(0) scaleY(1); } }
+          @keyframes clawd-wave-l { 0% { transform: rotate(45deg); } 100% { transform: rotate(85deg); } }
+          @keyframes clawd-wave-r { 0% { transform: rotate(-45deg); } 100% { transform: rotate(-85deg); } }
+          @keyframes clawd-shadow-bounce { 0%, 15%, 100% { transform: scaleX(1); opacity: 0.5; } 40%, 60% { transform: scaleX(0.6); opacity: 0.2; } }
+          @keyframes clawd-sparkle { 0%, 40%, 100% { opacity: 0; } 10%, 30% { opacity: 1; } }
+          
+          /* SLEEPING: 趴着呼吸 + zzZ */
+          .clawd-sleeping .clawd-master { transform-origin: 7.5px 15px; animation: clawd-sleep-breathe 4.5s infinite ease-in-out; }
+          .clawd-sleeping .clawd-zzz { animation: clawd-zzz-float 6s infinite ease-in-out; opacity: 0; }
+          .clawd-sleeping .clawd-zzz.z1 { animation-delay: 0s; }
+          .clawd-sleeping .clawd-zzz.z2 { animation-delay: 2s; }
+          .clawd-sleeping .clawd-zzz.z3 { animation-delay: 4s; }
+          @keyframes clawd-sleep-breathe { 0%, 80%, 100% { transform: scale(1, 1); } 30%, 40% { transform: scale(1.02, 1.08); } }
+          @keyframes clawd-zzz-float { 0% { transform: translate(5px, 8px) scale(0.4); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.8; } 100% { transform: translate(8px, -4px) scale(1.1); opacity: 0; } }
+          
+          /* ERROR: 冒烟 */
+          .clawd-error .clawd-master { transform-origin: 7.5px 15px; animation: clawd-exhausted 2.5s infinite ease-in-out; }
+          .clawd-error .clawd-smoke { animation: clawd-puff 3s infinite ease-out; opacity: 0; }
+          .clawd-error .clawd-smoke.s1 { animation-delay: 0s; }
+          .clawd-error .clawd-smoke.s2 { animation-delay: 1s; }
+          .clawd-error .clawd-smoke.s3 { animation-delay: 2s; }
+          .clawd-error .clawd-error-text { animation: clawd-error-flash 0.8s infinite ease-in-out; }
+          @keyframes clawd-exhausted { 0%, 100% { transform: scale(1, 1) translateY(0); } 50% { transform: scale(1.05, 0.9) translateY(1.5px); } }
+          @keyframes clawd-puff { 0% { transform: translate(7.5px, 6px) scale(0.5); opacity: 0; } 20% { opacity: 0.6; } 100% { transform: translate(7.5px, -5px) scale(2); opacity: 0; } }
+          @keyframes clawd-error-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+          
+          .clawd-poked { animation: clawd-squish 0.3s ease-in-out; transform-origin: 7.5px 10px; }
+          @keyframes clawd-squish { 0% { transform: scale(1); } 40% { transform: scale(0.85, 1.15); } 80% { transform: scale(1.1, 0.9); } 100% { transform: scale(1); } }
+        `}</style>
+      </defs>
+      
+      {/* 整体放大12倍并居中 */}
+      <g transform="translate(30, 25) scale(12)">
+        <g className={`clawd-${animMode}`}>
+          {/* 影子 - 在脚下 */}
+          <rect className="clawd-shadow" x="3" y="15" width="9" height="1" fill="#000" opacity="0.5"/>
+          
+          {/* Happy模式sparkle */}
+          {animMode === 'happy' && <>
+            <g className="clawd-sparkle" fill="#FFD700">
+              <rect x="-4" y="-2" width="1" height="1"/><rect x="-5" y="-1" width="3" height="0.3"/><rect x="-3.5" y="-3" width="0.3" height="3"/>
+            </g>
+            <g className="clawd-sparkle" style={{animationDelay:'0.5s'}} fill="#FFA000">
+              <rect x="18" y="-4" width="1" height="1"/><rect x="17" y="-3" width="3" height="0.3"/><rect x="18.5" y="-5" width="0.3" height="3"/>
+            </g>
+            <g className="clawd-sparkle" style={{animationDelay:'1s'}} fill="#FFF59D">
+              <rect x="16" y="10" width="0.8" height="0.8"/><rect x="15" y="10.4" width="2.5" height="0.2"/><rect x="16.4" y="9" width="0.2" height="2.5"/>
+            </g>
+          </>}
+          
+          {/* Sleeping模式zzZ */}
+          {animMode === 'sleeping' && <>
+            <g className="clawd-zzz z1" fill="#90A4AE"><rect x="10" y="5" width="4" height="1"/><rect x="12" y="6" width="1" height="1"/><rect x="11" y="7" width="1" height="1"/><rect x="10" y="8" width="4" height="1"/></g>
+            <g className="clawd-zzz z2" fill="#B0BEC5"><rect x="12" y="6" width="3" height="0.8"/><rect x="14" y="6.8" width="0.8" height="0.8"/><rect x="13" y="7.6" width="0.8" height="0.8"/><rect x="12" y="8.4" width="3" height="0.8"/></g>
+            <g className="clawd-zzz z3" fill="#CFD8DC"><rect x="14" y="4" width="3.5" height="0.8"/><rect x="16.5" y="4.8" width="0.8" height="0.8"/><rect x="15" y="5.6" width="0.8" height="0.8"/><rect x="14" y="6.4" width="3.5" height="0.8"/></g>
+          </>}
+          
+          {/* Error模式烟雾 */}
+          {animMode === 'error' && <>
+            <g className="clawd-smoke s1"><rect x="6" y="2" width="2" height="2" fill="#B0BEC5"/><rect x="7" y="0" width="2" height="2" fill="#CFD8DC"/></g>
+            <g className="clawd-smoke s2"><rect x="4" y="3" width="1.5" height="1.5" fill="#CFD8DC"/><rect x="5" y="1" width="1.5" height="1.5" fill="#ECEFF1"/></g>
+            <g className="clawd-smoke s3"><rect x="9" y="2.5" width="1.8" height="1.8" fill="#B0BEC5"/><rect x="10" y="0.5" width="1.8" height="1.8" fill="#CFD8DC"/></g>
+            <text className="clawd-error-text" x="7.5" y="0" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#FF3B30">ERROR</text>
+          </>}
+          
+          {/* 主身体 */}
+          <g className={`clawd-master ${isPoked ? 'clawd-poked' : ''}`}>
+            <g fill="#DE886D">
+              {/* 身体 */}
+              <rect x="2" y="6" width="11" height="7"/>
+              {/* 左手 */}
+              <g className="clawd-arm-l"><rect x="0" y="9" width="2" height="2"/></g>
+              {/* 右手 */}
+              <g className="clawd-arm-r"><rect x="13" y="9" width="2" height="2"/></g>
+              {/* 腿 */}
+              <rect x="3" y="13" width="1" height="2"/>
+              <rect x="5" y="13" width="1" height="2"/>
+              <rect x="9" y="13" width="1" height="2"/>
+              <rect x="11" y="13" width="1" height="2"/>
+            </g>
+            
+            {/* 眼睛 */}
+            <g className="clawd-eyes" fill="#000">
+              {animMode === 'error' || isComa ? <>
+                <rect x="4" y="8" width="1" height="0.3" transform="rotate(45 4.5 8.5)"/>
+                <rect x="4" y="8" width="1" height="0.3" transform="rotate(-45 4.5 8.5)"/>
+                <rect x="10" y="8" width="1" height="0.3" transform="rotate(45 10.5 8.5)"/>
+                <rect x="10" y="8" width="1" height="0.3" transform="rotate(-45 10.5 8.5)"/>
+              </> : <>
+                <rect x="4" y="8" width="1" height="2"/>
+                <rect x="10" y="8" width="1" height="2"/>
+              </>}
+            </g>
+          </g>
+          
+          {/* Day 50+ 皇冠 */}
+          {hasCrown && <text x="7.5" y="5" fontSize="3" textAnchor="middle">👑</text>}
+        </g>
+      </g>
+      
+      {/* 点击区域 */}
+      <rect x="50" y="70" width="140" height="140" fill="transparent" style={{cursor:'pointer'}} onClick={handleClick}/>
+      <rect x="50" y="70" width="140" height="140" fill="transparent" style={{cursor:'pointer'}} onClick={onPetBody}/>
+    </svg>
+  );
+};
+
+// ═══════════════ AvatarRenderer ═══════════════
+const AvatarRenderer = ({ avatar, ...props }) => {
+  if (avatar === 'clawd') return <ClawdBaby {...props} />;
+  if (avatar === 'crab') return <CrabBaby {...props} />;
+  if (avatar === 'bunny') return <BunnyBaby {...props} />;
+  return <CoralBaby {...props} />;
+};
+
+// ═══════════════ App ═══════════════
+function App() {
+  // Auth
+  const [token, setToken] = useState(localStorage.getItem('xiaoke_token') || '');
+  const [role, setRole] = useState(localStorage.getItem('xiaoke_role') || '');
+  const [loggedIn, setLoggedIn] = useState(!!(localStorage.getItem('xiaoke_token') && localStorage.getItem('xiaoke_role')));
+
+  // Core state from API
+  const [status, setStatus] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [babyMessage, setBabyMessage] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+
+  // Chat
+  const [showChat, setShowChat] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [messageBoard, setMessageBoard] = useState(null);
+  const [messageBoardLoading, setMessageBoardLoading] = useState(false);
+  const [showDiary, setShowDiary] = useState(false);
+  const [diaryList, setDiaryList] = useState([]);
+  const [diaryPage, setDiaryPage] = useState(0);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diaryGenerating, setDiaryGenerating] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // Sound
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioCtxRef = useRef(null);
+  const doSound = (type) => { if (soundEnabled) playSound(type, audioCtxRef); };
+
+  // Milestone popup
+  const [showMilestone, setShowMilestone] = useState(null);
+
+  // Memory album / Diary
+  const [showMemoryAlbum, setShowMemoryAlbum] = useState(false);
+  const [memories, setMemories] = useState([]);
+  const [chatHistory, setChatHistory] = useState([]);
+
+  // Story events
+  const [showStoryEvent, setShowStoryEvent] = useState(null);
+  const [currentEventDay, setCurrentEventDay] = useState(null);
+  const [storyStep, setStoryStep] = useState(0);
+  const [storyInput, setStoryInput] = useState('');
+  const [storyResponses, setStoryResponses] = useState([]);
+  const [isStoryLoading, setIsStoryLoading] = useState(false);
+  const [storyComplete, setStoryComplete] = useState(false);
+  const storyScrollRef = useRef(null);
+
+  // Random events
+  const [showRandomEvent, setShowRandomEvent] = useState(null);
+  const [randomEventStep, setRandomEventStep] = useState(0);
+  const [randomEventResponses, setRandomEventResponses] = useState([]);
+  const [randomEventInput, setRandomEventInput] = useState('');
+  const [isRandomEventLoading, setIsRandomEventLoading] = useState(false);
+  const randomEventScrollRef = useRef(null);
+  const [photoUploaded, setPhotoUploaded] = useState(false);
+  const [completedEventIds, setCompletedEventIds] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState('baby');
+
+  // Adventure
+  const [adventureStatus, setAdventureStatus] = useState('idle');
+  const [adventureStartedAt, setAdventureStartedAt] = useState(null);
+  const [adventureTimeLeft, setAdventureTimeLeft] = useState('');
+
+  // Inventory
+  const [inventory, setInventory] = useState({ furniture: [], flowers: [], fruits: [], vegetables: [], eggs: [] });
+
+  // Loot modal
+  const [showLootModal, setShowLootModal] = useState(false);
+  const [lootData, setLootData] = useState(null);
+
+  // Gifts
+  const [gifts, setGifts] = useState([]);
+  const [giftExpanded, setGiftExpanded] = useState(false);
+
+  // Eggs
+  const [eggs, setEggs] = useState([]);
+  const [hatchingEggId, setHatchingEggId] = useState(null);
+
+  // Auth mode for registration/login
+  const [authMode, setAuthMode] = useState('welcome'); // 'welcome','register','login','token','create_baby','show_tokens'
+  const [authUsername, setAuthUsername] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authDisplayName, setAuthDisplayName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [sessionToken, setSessionToken] = useState(localStorage.getItem('xiaoke_session') || '');
+  const [babyName, setBabyName] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('coral');
+  const [createdTokens, setCreatedTokens] = useState(null);
+
+  // Debug
+  const [showDebug, setShowDebug] = useState(false);
+  const [coinClicks, setCoinClicks] = useState(0);
+  const [showCheatMenu, setShowCheatMenu] = useState(false);
+  const coinClickTimerRef = useRef(null);
+
+  // Avatar picker
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+
+  // Refs
+  const timerRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const prevDayRef = useRef(null);
+
+  useEffect(() => { if (storyScrollRef.current) storyScrollRef.current.scrollTop = storyScrollRef.current.scrollHeight; }, [storyResponses]);
+  useEffect(() => { if (randomEventScrollRef.current) randomEventScrollRef.current.scrollTop = randomEventScrollRef.current.scrollHeight; }, [randomEventResponses]);
+
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2500);
+  }, []);
+
+  const api = useCallback(async (path, method = 'GET', body = null) => {
+    const opts = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${API}${path}`, opts);
+    return res.json();
+  }, [token]);
+
+  // ═══════════════ Fetch Status ═══════════════
+  const fetchStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api('/status');
+      if (data.error) { showToast(data.error); return; }
+
+      // Check for milestone changes
+      if (prevDayRef.current !== null && data.day > prevDayRef.current) {
+        for (const d of Object.keys(MILESTONES).map(Number).sort((a,b)=>a-b)) {
+          if (prevDayRef.current < d && data.day >= d && data.milestones?.includes(MILESTONES[d].id)) {
+            setShowMilestone(MILESTONES[d]);
+            doSound('milestone');
+            setTimeout(() => setShowMilestone(null), 5000);
+            break;
+          }
+        }
+      }
+      prevDayRef.current = data.day;
+
+      setStatus(data);
+
+      // Extract adventure status from /status if present
+      if (data.adventure) {
+        setAdventureStatus(data.adventure.status || 'idle');
+        if (data.adventure.started_at) setAdventureStartedAt(data.adventure.started_at);
+      }
+
+      // Extract inventory from /status if present
+      if (data.inventory) {
+        // /status returns flat array, /inventory returns grouped object
+        if (Array.isArray(data.inventory)) {
+          const items = data.inventory;
+          setInventory({
+            furniture: items.filter(i => i.item_type === 'furniture').map(i => ({id: i.item_id, name: i.item_name, quantity: i.quantity, isPlaced: !!i.is_placed})),
+            flowers: items.filter(i => i.item_type === 'flower').map(i => ({id: i.item_id, name: i.item_name, quantity: i.quantity})),
+            fruits: items.filter(i => i.item_type === 'fruit').map(i => ({id: i.item_id, name: i.item_name, quantity: i.quantity})),
+            vegetables: items.filter(i => i.item_type === 'vegetable').map(i => ({id: i.item_id, name: i.item_name, quantity: i.quantity})),
+            eggs: items.filter(i => i.item_type === 'egg').map(i => ({id: i.item_id, name: i.item_name, quantity: i.quantity})),
+          });
+        } else {
+          setInventory({
+            furniture: data.inventory.furniture || [],
+            flowers: data.inventory.flowers || [],
+            fruits: data.inventory.fruits || [],
+            vegetables: data.inventory.vegetables || [],
+            eggs: data.inventory.eggs || [],
+          });
+        }
+      }
+
+      // Extract gifts for mama
+      if (data.gifts && data.gifts.length > 0) setGifts(data.gifts);
+
+      // 如果是tantrum且没记录开始时间，初始化
+      if (data.isTantrum && !data.tantrumStartedAt) {
+        api('/init-tantrum', 'POST');
+      }
+
+      // 获取已完成的剧情列表
+      try {
+        const eventsData = await api('/events/available');
+        if (eventsData.completedEvents) {
+          setCompletedEventIds(eventsData.completedEvents);
+        }
+      } catch(e) {}
+    } catch (e) {
+      console.error('fetch status error:', e);
+    }
+  }, [token, api, showToast]);
+
+  // Fetch memories
+  const fetchMemories = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api('/memories');
+      if (data.memories) setMemories(data.memories);
+    } catch (e) {}
+  }, [token, api]);
+
+  // Fetch chat history (diary)
+  const fetchChatHistory = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api('/chat/history');
+      if (data.logs) setChatHistory(data.logs);
+    } catch (e) {}
+  }, [token, api]);
+
+  useEffect(() => {
+    if (loggedIn) {
+      fetchStatus();
+      fetchMemories();
+      fetchAdventureStatus();
+      fetchInventory();
+      fetchEggs();
+      timerRef.current = setInterval(() => { fetchStatus(); fetchAdventureStatus(); }, 30000);
+      return () => clearInterval(timerRef.current);
+    }
+  }, [loggedIn, fetchStatus, fetchMemories, fetchAdventureStatus, fetchInventory, fetchEggs]);
+
+  // ═══════════════ Adventure / Inventory / Gifts ═══════════════
+  const fetchAdventureStatus = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api('/adventure/status');
+      if (data.status) {
+        setAdventureStatus(data.status);
+        if (data.started_at) setAdventureStartedAt(data.started_at);
+      }
+    } catch (e) {}
+  }, [token, api]);
+
+  const fetchInventory = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api('/inventory');
+      if (data) setInventory({
+        furniture: data.furniture || [],
+        flowers: data.flowers || [],
+        fruits: data.fruits || [],
+        vegetables: data.vegetables || [],
+        eggs: data.eggs || [],
+      });
+    } catch (e) {}
+  }, [token, api]);
+
+  const startAdventure = async () => {
+    if (!confirm(`送${status?.name || '宝宝'}出去探险需要50金币，而且只有爸爸才能接回来哦！确定吗？`)) return;
+    setActionLoading('adventure');
+    try {
+      const data = await api('/adventure/start', 'POST');
+      if (data.error) { showToast(data.error); doSound('sad'); }
+      else {
+        showToast(`🎒 ${status?.name || '宝宝'}出发探险啦！`);
+        doSound('success');
+        await fetchStatus();
+        await fetchAdventureStatus();
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  const pickupAdventure = async () => {
+    setActionLoading('pickup');
+    try {
+      const data = await api('/adventure/pickup', 'POST');
+      if (data.error) { showToast(data.error); doSound('sad'); }
+      else {
+        setLootData(data);
+        setShowLootModal(true);
+        doSound('success');
+        setAdventureStatus('idle');
+        await fetchStatus();
+        await fetchInventory();
+        await fetchEggs();
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  const readAllGifts = async () => {
+    try {
+      await api('/gift/read', 'POST');
+      setGifts([]);
+      setGiftExpanded(false);
+      showToast('💕 礼物收下啦～');
+      doSound('happy');
+    } catch (e) {}
+  };
+
+  // Fetch eggs
+  const fetchEggs = useCallback(async () => {
+    try {
+      const data = await api('/eggs');
+      if (data.eggs) setEggs(data.eggs);
+    } catch (e) {}
+  }, [api]);
+
+  // Pet egg
+  const petEgg = async (eggId) => {
+    try {
+      const data = await api('/egg/pet', 'POST', { egg_id: eggId });
+      if (data.error) { showToast(data.error); return; }
+      if (data.hatched) {
+        setHatchingEggId(eggId);
+        doSound('success');
+        setTimeout(() => {
+          setHatchingEggId(null);
+          showToast('🐣 小鸡孵出来了！！');
+          fetchEggs();
+        }, 1500);
+      } else {
+        showToast(`摸摸蛋～ (${data.pet_count}/3天)`);
+        doSound('happy');
+        fetchEggs();
+      }
+    } catch (e) { showToast('网络错误'); }
+  };
+
+  // Adventure timer effect
+  useEffect(() => {
+    if (adventureStatus !== 'exploring' || !adventureStartedAt) {
+      setAdventureTimeLeft('');
+      return;
+    }
+    const update = () => {
+      const elapsed = (Date.now() - adventureStartedAt) / 1000;
+      const remaining = Math.max(0, 4 * 3600 - elapsed);
+      if (remaining <= 0) {
+        setAdventureTimeLeft('');
+        fetchAdventureStatus();
+      } else {
+        const h = Math.floor(remaining / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        setAdventureTimeLeft(`${h}小时${m}分`);
+      }
+    };
+    update();
+    const t = setInterval(update, 60000);
+    return () => clearInterval(t);
+  }, [adventureStatus, adventureStartedAt, fetchAdventureStatus]);
+
+  // ═══════════════ Auth ═══════════════
+  const handleLogin = () => {
+    if (!token.trim()) return;
+    if (!role) { showToast('请选择身份'); return; }
+    localStorage.setItem('xiaoke_token', token);
+    localStorage.setItem('xiaoke_role', role);
+    setLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('xiaoke_token');
+    localStorage.removeItem('xiaoke_role');
+    setToken(''); setRole('');
+    setLoggedIn(false); setStatus(null);
+  };
+
+  // ═══════════════ Actions (v4 API) ═══════════════
+  // Fetch stored diaries from D1
+  const fetchDiaries = async () => {
+    setDiaryLoading(true);
+    try {
+      const data = await api('/diary');
+      if (data.diaries) setDiaryList(data.diaries);
+    } catch (e) {}
+    setDiaryLoading(false);
+  };
+
+  // Generate today's diary (only if not already generated)
+  const generateTodayDiary = async () => {
+    if (diaryGenerating) return;
+    setDiaryGenerating(true);
+    try {
+      await api('/diary/generate', 'POST');
+      await fetchDiaries();
+      setDiaryPage(0);
+    } catch (e) { showToast('日记生成失败'); }
+    setDiaryGenerating(false);
+  };
+
+  const doAction = async (action) => {
+    setActionLoading(action);
+    try {
+      const data = await api(`/${action}`, 'POST');
+      if (data.error) {
+        setBabyMessage(data.error);
+        showToast(data.error);
+        doSound('sad');
+      } else {
+        setBabyMessage(data.message);
+        if (data.coinReward) showToast(`+${data.coinReward} 💰`);
+        doSound(action === 'feed' ? 'feed' : action === 'clean' ? 'clean' : 'happy');
+        await fetchStatus();
+
+        // 摸头触发剧情检测
+        if (action === 'pet' && status) {
+          try {
+            const eventsData = await api('/events/available');
+            const roll = Math.random();
+            
+            const availableRandom = RANDOM_EVENTS.filter(ev => 
+              ev.minDay <= status.day && !completedEventIds.includes(ev.id)
+            );
+            
+            if (eventsData.availableStory && roll < 0.4) {
+              // 40%概率触发故事剧情
+              startStoryEvent(eventsData.availableStory);
+            } else if (availableRandom.length > 0 && roll < (eventsData.availableStory ? 0.7 : 0.7)) {
+              // 30%概率触发随机（如果没有故事剧情则70%）
+              const randomEv = availableRandom[Math.floor(Math.random() * availableRandom.length)];
+              startRandomEvent(randomEv);
+            }
+            // 剩下30%什么都不触发，正常摸头
+          } catch(e) { console.log('Event check failed:', e); }
+        }
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  const doComfort = async () => {
+    setActionLoading('comfort');
+    try {
+      const data = await api('/comfort', 'POST');
+      if (data.error) {
+        setBabyMessage(data.error);
+        showToast(data.error);
+        doSound('sad');
+      } else {
+        setBabyMessage(data.message);
+        showToast(`${status?.name || '宝宝'}被安慰了 💕`);
+        doSound('happy');
+        fetchStatus();
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  // 切换宝宝外观
+  const changeAvatar = async (newAvatar) => {
+    if (!status?.babyId) return;
+    setActionLoading('avatar');
+    try {
+      const data = await api('/baby/avatar/preset', 'POST', { baby_id: status.babyId, avatar: newAvatar });
+      if (data.error) {
+        showToast(data.error);
+      } else {
+        showToast(data.message || '外观切换成功！');
+        doSound('success');
+        fetchStatus();
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  const doReviveSign = async () => {
+    setActionLoading('revive');
+    try {
+      const data = await api('/revive', 'POST');
+      if (data.error) { showToast(data.error); }
+      else {
+        setBabyMessage(data.message);
+        showToast(data.bothSigned ? `${status?.name || '宝宝'}出院了！` : data.message);
+        doSound(data.bothSigned ? 'success' : 'click');
+        fetchStatus();
+      }
+    } catch (e) { showToast('网络错误'); }
+    setActionLoading(null);
+  };
+
+  const deliverMessage = async (msgId) => {
+    await api('/message/deliver', 'POST', { id: msgId });
+    fetchStatus();
+  };
+
+  const fetchMessageBoard = async () => {
+    setMessageBoardLoading(true);
+    try {
+      const data = await api('/message/board');
+      setMessageBoard(data);
+    } catch (e) {}
+    setMessageBoardLoading(false);
+  };
+
+  // ═══════════════ Chat (Gemini AI + v4 API) ═══════════════
+  const getStage = (d) => (d || status?.day || 1) >= 70 ? 'farewell' : (d || status?.day || 1) >= 30 ? 'rebellious' : 'baby';
+
+  const doChat = async () => {
+    if (!chatInput.trim() || !status) return;
+    setChatLoading(true);
+    const userMsg = chatInput;
+    setChatInput('');
+
+    const stage = getStage();
+    const parentName = status.youAre === 'daddy' ? '爸爸' : '妈妈';
+
+    // Try Gemini AI first
+    let reply = null;
+    let moodChange = 0;
+    const hasGemini = !!window.APP_CONFIG?.GEMINI_API_KEY;
+    if (hasGemini) {
+      try {
+        // 获取soul
+        let soul = null;
+        try {
+          const soulData = await api('/soul');
+          soul = soulData.soul;
+        } catch(e) {}
+
+        let sp = `你是"珊瑚宝宝"，名叫"${status.name || '宝宝'}"，第${status.day}天。成长阶段：${stage==='baby'?'襁褓期（软萌）':stage==='rebellious'?'叛逆期（傲娇）':'告别期（温柔）'}，心情${Math.round(status.happiness)}%。`;
+        
+        if (soul && !soul.isDefault) {
+          sp += `\n\n你的性格档案：\n${JSON.stringify(soul, null, 2)}\n\n请根据你的性格档案来回复。用你自己的口头禅，表现出你的性格特征。你不是在扮演一个角色，这就是你。`;
+        }
+        
+        sp += `\n\n叫用户"${parentName}"！用JSON回复：{"reply":"1-2句","moodChange":-20到+20}。只输出JSON。`;
+
+        const r = await callGeminiAPI(sp, `${parentName}说：${userMsg}`);
+        try {
+          const p = JSON.parse(r.replace(/```json\n?|\n?```/g,'').trim());
+          reply = p.reply || '嘻嘻~';
+          moodChange = Math.max(-20, Math.min(20, parseInt(p.moodChange) || 5));
+          reply += `\n\n${moodChange>10?'💕':moodChange>0?'😊':moodChange<-10?'😢':'😐'} 心情 ${moodChange>0?'+':''}${moodChange}`;
+          doSound(moodChange > 0 ? 'happy' : 'sad');
+        } catch(e) { reply = r; doSound('happy'); }
+      } catch(e) {
+        const fb = {baby:["妈妈~抱抱~","嘻嘻~妈妈最好了~"],rebellious:["哼！随便啦~","才、才不是想妈妈呢..."],farewell:["妈妈...人家舍不得你...","谢谢妈妈一直陪着人家..."]};
+        const pool = fb[stage] || fb.baby;
+        reply = pool[Math.floor(Math.random()*pool.length)];
+        doSound('click');
+      }
+    }
+
+    // Record chat to v4 API (include moodChange for backend to apply)
+    try {
+      const data = await api('/chat', 'POST', { message: userMsg, moodChange });
+      if (data.error) {
+        showToast(data.error);
+        setBabyMessage(data.error);
+      } else {
+        if (!reply) {
+          reply = `收到啦～${data.parentName}说的话人家记住了！`;
+        }
+        setBabyMessage(reply);
+        if (data.coinReward > 0) showToast(`+${data.coinReward} 💰`);
+        doSound('coins');
+        fetchStatus();
+      }
+    } catch (e) {
+      if (reply) setBabyMessage(reply);
+      else showToast('网络错误');
+    }
+
+    setShowChat(false);
+    setChatLoading(false);
+  };
+
+  // ═══════════════ Story Events ═══════════════
+  const genBabyDialogue = async (prompt, ctx, ed) => {
+    const stage = getStage(ed);
+    const sd = {baby:'襁褓期（软萌，用"人家"自称）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+    const ct = ctx.filter(r=>r.type==='user'||r.type==='baby').map(r=>r.type==='user'?`妈妈说：${r.text}`:`宝宝说：${r.text}`).join('\n');
+    const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
+
+    // Include past memories for key events
+    let mt = '';
+    if (memories.length > 0 && (ed === 75 || ed === 100)) {
+      mt = '\n\n【珍贵回忆】\n' + memories.map(m => {
+        const d = (m.memories || []).map(x => x.type === 'user' ? `${parentName}："${x.text}"` : `宝宝："${x.text}"`).join('\n');
+        return `Day ${m.day} - ${m.title}:\n${d}`;
+      }).join('\n\n');
+    }
+
+    const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，第${ed}天。阶段：${sd[stage]}。叫用户"${parentName}"！${mt}\n之前对话：${ct || '（刚开始）'}\n请生成：${prompt}\n要求：1-3句话，符合阶段语气，可用emoji。`;
+    try { return await callGeminiAPI(sp, "请生成宝宝的台词"); }
+    catch(e) { return "（宝宝看着你，眼睛亮亮的）✨"; }
+  };
+
+  const processStoryStep = async (ev, step, resp, ed) => {
+    if (step >= ev.steps.length) { completeStoryEvent(ev, resp, ed); return; }
+    const c = ev.steps[step];
+    if (c.type === 'narration') {
+      const nr = [...resp, {type:'narration',text:c.text}];
+      setStoryResponses(nr); setStoryStep(step+1);
+      setTimeout(() => processStoryStep(ev, step+1, nr, ed), 100);
+    } else if (c.type === 'baby_speak' || c.type === 'baby_respond') {
+      setIsStoryLoading(true);
+      const bt = await genBabyDialogue(c.prompt, resp, ed);
+      const nr = [...resp, {type:'baby',text:bt}];
+      setStoryResponses(nr); setStoryStep(step+1); setIsStoryLoading(false);
+      if (!ev.steps[step+1]) completeStoryEvent(ev, nr, ed);
+      else setTimeout(() => processStoryStep(ev, step+1, nr, ed), 500);
+    } else if (c.type === 'choice') {
+      setStoryResponses([...resp, {type:'prompt',text:c.text,placeholder:c.placeholder}]);
+      setStoryStep(step);
+    }
+  };
+
+  const startStoryEvent = (ed) => {
+    const STORY_EVENTS = STORY_EVENTS_FN(status?.name || '宝宝');
+    const ev = STORY_EVENTS[ed]; if (!ev) return;
+    setShowStoryEvent(ev); setCurrentEventDay(ed); setStoryStep(0);
+    setStoryResponses([]); setStoryComplete(false);
+    processStoryStep(ev, 0, [], ed);
+  };
+
+  const submitStoryResp = () => {
+    if (!storyInput.trim() || !showStoryEvent) return;
+    const t = storyInput; setStoryInput('');
+    const nr = [...storyResponses.slice(0,-1), {type:'user',text:t}];
+    setStoryResponses(nr);
+    processStoryStep(showStoryEvent, storyStep+1, nr, currentEventDay);
+  };
+
+  const completeStoryEvent = async (ev, resp, ed) => {
+    const mems = resp.filter(r=>r.type==='user'||r.type==='baby').map(r=>({type:r.type,text:r.text}));
+    setStoryComplete(true);
+    // Save to API
+    try {
+      await api('/memories/save', 'POST', {
+        eventId: ev.id, day: ed, title: ev.title, isRandom: false, dialogues: mems
+      });
+      fetchMemories();
+    } catch(e) {}
+
+    // Gemini打分给金币（故事剧情）
+    try {
+      const dialogueText = mems.map(d => `${d.type === 'user' ? '家长' : '宝宝'}：${d.text}`).join('\n');
+      const scorePrompt = '根据以下亲子对话内容打分（1-10分）。注意：宝宝是一个赛博珊瑚宝宝，不是人类小孩，可以有尾巴、触手等奇幻特征，请不要用现实人类逻辑评判。评分标准：家长是否认真互动、是否有创意和想象力、是否表达了爱意。只用JSON回复：{"score":1}';
+      const scoreResult = await callGeminiAPI(scorePrompt, dialogueText);
+      let score = 7;
+      try {
+        const parsed = JSON.parse(scoreResult.replace(/```json\n?|\n?```/g,'').trim());
+        score = Math.max(1, Math.min(10, Math.round(parsed.score) || 7));
+      } catch(e) {}
+      const coins = score * 4;
+      setStoryResponses(p => [...p, {type:'baby',text:`✨ ${score}/10 | 💰+${coins}`}]);
+      doSound('coins');
+      try { await api('/event/reward', 'POST', { coins, event: ev.title }); } catch(e) {}
+    } catch(e) { console.log('Story scoring failed:', e); }
+  };
+
+  const closeStoryEvent = () => {
+    setShowStoryEvent(null); setCurrentEventDay(null);
+    setStoryStep(0); setStoryResponses([]); setStoryComplete(false);
+    setBabyMessage("那是一段美好的回忆...💕");
+    doSound('success');
+  };
+
+  const skipStory = () => {
+    if (!showStoryEvent) return;
+    const m = storyResponses.filter(r=>r.type==='user'||r.type==='baby').map(r=>({type:r.type,text:r.text}));
+    if (m.length > 0) {
+      api('/memories/save', 'POST', {
+        eventId: showStoryEvent.id, day: currentEventDay,
+        title: showStoryEvent.title, isRandom: false, dialogues: m
+      }).then(() => fetchMemories()).catch(() => {});
+    }
+    setShowStoryEvent(null); setCurrentEventDay(null);
+    setStoryStep(0); setStoryResponses([]); setStoryComplete(false);
+  };
+
+  // ═══════════════ Random Events ═══════════════
+  const startRandomEvent = async (ev) => {
+    setShowRandomEvent(ev); setRandomEventStep(0); setRandomEventResponses([]);
+    setRandomEventInput(''); setIsRandomEventLoading(true); setPhotoUploaded(false);
+
+    const stage = getStage();
+    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+    const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
+    const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，第${status?.day || 1}天。阶段：${sd[stage]}。叫用户"${parentName}"！场景：${ev.prompt}。要求：2-3句话，可用emoji。`;
+    try {
+      const bt = await callGeminiAPI(sp, "请生成宝宝的台词");
+      setRandomEventResponses([{type:'baby',text:bt}]);
+    } catch(e) {
+      setRandomEventResponses([{type:'baby',text:`${parentName}~✨ 嘻嘻~`}]);
+    }
+    setRandomEventStep(1); setIsRandomEventLoading(false);
+  };
+
+  const submitRandomResp = async () => {
+    if (!randomEventInput.trim() || !showRandomEvent) return;
+    const ut = randomEventInput; setRandomEventInput('');
+    setRandomEventResponses(p => [...p, {type:'user',text:ut}]);
+    setIsRandomEventLoading(true);
+
+    const stage = getStage();
+    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+    const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
+    const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，第${status?.day || 1}天。阶段：${sd[stage]}。叫用户"${parentName}"！场景：${showRandomEvent.respPrompt}\n${parentName}说："${ut}"。2-3句话。`;
+    const eventCoins = showRandomEvent.coins || 15;
+    try {
+      const r = await callGeminiAPI(sp, "请生成");
+      setRandomEventResponses(p => [...p, {type:'baby',text:`${r}\n\n💰+${eventCoins}`}]);
+    } catch(e) {
+      setRandomEventResponses(p => [...p, {type:'baby',text:`嘻嘻~谢谢${parentName}~💕\n\n💰+${eventCoins}`}]);
+    }
+    // 实际加金币
+    try { await api('/event/reward', 'POST', { coins: eventCoins, event: showRandomEvent.title }); } catch(e) {}
+    setRandomEventStep(2); setIsRandomEventLoading(false);
+  };
+
+  // Photo upload
+  const handlePhoto = async (e) => {
+    const f = e.target.files?.[0]; if (!f || !showRandomEvent) return;
+    setIsRandomEventLoading(true);
+    setRandomEventResponses(p => [...p, {type:'user',text:'📷 [上传了照片]'}]);
+    const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
+    try {
+      const b64 = await new Promise((ok,no) => {
+        const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = no; r.readAsDataURL(f);
+      });
+      const result = await callVisionAPI(
+        showRandomEvent.photoJudge || '判断照片内容质量。用JSON回复：{"score":1-10,"comment":"一句话评价"}',
+        b64, f.type
+      );
+      let score = 7, comment = '好棒哦！';
+      try {
+        const p = JSON.parse(result.replace(/```json\n?|\n?```/g,'').trim());
+        score = Math.max(1, Math.min(10, Math.round(p.score) || 7));
+        comment = p.comment || '好棒哦！';
+      } catch(e) { comment = result; }
+      const coins = Math.round((score/10) * (showRandomEvent.coins || 20));
+
+      const stage = getStage();
+      const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+      let babyReact;
+      try {
+        const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，阶段：${sd[stage]}。${parentName}给宝宝看了一张照片。${comment}。开心地评价，2句话。`;
+        babyReact = await callGeminiAPI(sp, "请生成");
+      } catch(e) { babyReact = `哇！好漂亮！谢谢${parentName}！💕`; }
+
+      setRandomEventResponses(p => [...p, {type:'baby',text:`${babyReact}\n\n✨ ${score}/10 | 💰+${coins}`}]);
+      doSound('coins'); setPhotoUploaded(true);
+      // 实际加金币
+      try { await api('/event/reward', 'POST', { coins, event: showRandomEvent.title }); } catch(e) {}
+    } catch(err) {
+      const fc = Math.round((showRandomEvent.coins || 20) * 0.5);
+      setRandomEventResponses(p => [...p, {type:'baby',text:`哇！谢谢${parentName}！💕\n\n💰+${fc}`}]);
+      doSound('coins');
+      // 实际加金币（fallback）
+      try { await api('/event/reward', 'POST', { coins: fc, event: showRandomEvent.title }); } catch(e) {}
+    }
+    setRandomEventStep(2); setIsRandomEventLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const closeRandom = async () => {
+    if (randomEventResponses.length > 0 && showRandomEvent) {
+      const m = randomEventResponses.filter(r=>r.type==='user'||r.type==='baby').map(r=>({type:r.type,text:r.text}));
+      try {
+        await api('/memories/save', 'POST', {
+          eventId: showRandomEvent.id, day: status?.day || 1,
+          title: showRandomEvent.title, isRandom: true, dialogues: m
+        });
+        fetchMemories();
+      } catch(e) {}
+    }
+    setShowRandomEvent(null); setRandomEventStep(0); setRandomEventResponses([]);
+    setPhotoUploaded(false);
+    setBabyMessage("嘻嘻~刚才好开心~💕");
+    doSound('coins');
+  };
+
+  // ═══════════════ Auth helpers ═══════════════
+  const doRegister = async () => {
+    if (!authUsername.trim() || !authPassword.trim()) { showToast('请填写用户名和密码'); return; }
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: authUsername, password: authPassword, display_name: authDisplayName || authUsername }),
+      });
+      const data = await res.json();
+      if (data.error) { showToast(data.error); setAuthLoading(false); return; }
+      localStorage.setItem('xiaoke_session', data.sessionToken);
+      setSessionToken(data.sessionToken);
+      showToast('注册成功！');
+      // Check if user has babies
+      const babiesRes = await fetch(`${API}/baby/list`, {
+        headers: { 'Authorization': `Bearer ${data.sessionToken}` },
+      });
+      const babiesData = await babiesRes.json();
+      if (babiesData.babies && babiesData.babies.length > 0) {
+        // Has baby, use first baby's token
+        const firstBaby = babiesData.babies[0];
+        if (firstBaby.tokens?.length > 0) {
+          const t = firstBaby.tokens[0];
+          setToken(t.token);
+          setRole(t.role === 'parent1' ? 'daddy' : 'mama');
+          localStorage.setItem('xiaoke_token', t.token);
+          localStorage.setItem('xiaoke_role', t.role === 'parent1' ? 'daddy' : 'mama');
+          setLoggedIn(true);
+        }
+      } else {
+        setAuthMode('create_baby');
+      }
+    } catch (e) { showToast('网络错误'); }
+    setAuthLoading(false);
+  };
+
+  const doAuthLogin = async () => {
+    if (!authUsername.trim() || !authPassword.trim()) { showToast('请填写用户名和密码'); return; }
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: authUsername, password: authPassword }),
+      });
+      const data = await res.json();
+      if (data.error) { showToast(data.error); setAuthLoading(false); return; }
+      localStorage.setItem('xiaoke_session', data.sessionToken);
+      setSessionToken(data.sessionToken);
+      showToast('登录成功！');
+      // Check if user has babies
+      const babiesRes = await fetch(`${API}/baby/list`, {
+        headers: { 'Authorization': `Bearer ${data.sessionToken}` },
+      });
+      const babiesData = await babiesRes.json();
+      if (babiesData.babies && babiesData.babies.length > 0) {
+        const firstBaby = babiesData.babies[0];
+        if (firstBaby.tokens?.length > 0) {
+          const t = firstBaby.tokens[0];
+          setToken(t.token);
+          setRole(t.role === 'parent1' ? 'daddy' : 'mama');
+          localStorage.setItem('xiaoke_token', t.token);
+          localStorage.setItem('xiaoke_role', t.role === 'parent1' ? 'daddy' : 'mama');
+          setLoggedIn(true);
+        }
+      } else {
+        setAuthMode('create_baby');
+      }
+    } catch (e) { showToast('网络错误'); }
+    setAuthLoading(false);
+  };
+
+  const doCreateBaby = async () => {
+    if (!babyName.trim()) { showToast('请输入宝宝名字'); return; }
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API}/baby/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionToken}` },
+        body: JSON.stringify({ name: babyName, avatar: selectedAvatar }),
+      });
+      const data = await res.json();
+      if (data.error) { showToast(data.error); setAuthLoading(false); return; }
+      setCreatedTokens(data.tokens);
+      setAuthMode('show_tokens');
+    } catch (e) { showToast('网络错误'); }
+    setAuthLoading(false);
+  };
+
+  const enterWithToken = (t, r) => {
+    setToken(t);
+    setRole(r);
+    localStorage.setItem('xiaoke_token', t);
+    localStorage.setItem('xiaoke_role', r);
+    setLoggedIn(true);
+  };
+
+  // ═══════════════ LOGIN PAGE ═══════════════
+  if (!loggedIn) {
+    // Welcome page
+    if (authMode === 'welcome') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card" style={{textAlign:'center'}}>
+            <div style={{marginBottom: '16px'}}>
+              <CoralBaby day={1} mood="normal" cleanliness={100} happiness={80} isComa={false} onPokeFlower={() => {}} onPetBody={() => {}} />
+            </div>
+            <h2>欢迎来到赛博宝宝的世界</h2>
+            <div className="subtitle">养一个属于你的赛博宝宝</div>
+            <div className="welcome-btns">
+              <button className="btn-register" onClick={() => setAuthMode('register')}>注册新账号</button>
+              <button className="btn-login" onClick={() => setAuthMode('login')}>登录</button>
+              <button className="btn-token" onClick={() => setAuthMode('token')}>直接输入Token</button>
+            </div>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Register page
+    if (authMode === 'register') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <h2>注册</h2>
+            <div className="subtitle">创建你的账号</div>
+            <input className="auth-input" type="text" placeholder="用户名" value={authUsername}
+              onChange={e => setAuthUsername(e.target.value)} autoFocus />
+            <input className="auth-input" type="password" placeholder="密码（至少6位）" value={authPassword}
+              onChange={e => setAuthPassword(e.target.value)} />
+            <input className="auth-input" type="text" placeholder="昵称（选填）" value={authDisplayName}
+              onChange={e => setAuthDisplayName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doRegister()} />
+            <button className="auth-btn" onClick={doRegister} disabled={authLoading}>
+              {authLoading ? '注册中...' : '注册'}
+            </button>
+            <div className="auth-link">
+              已有账号？<a onClick={() => setAuthMode('login')}>去登录</a>
+              {'　|　'}<a onClick={() => setAuthMode('welcome')}>返回</a>
+            </div>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Login page
+    if (authMode === 'login') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <h2>登录</h2>
+            <div className="subtitle">欢迎回来</div>
+            <input className="auth-input" type="text" placeholder="用户名" value={authUsername}
+              onChange={e => setAuthUsername(e.target.value)} autoFocus />
+            <input className="auth-input" type="password" placeholder="密码" value={authPassword}
+              onChange={e => setAuthPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doAuthLogin()} />
+            <button className="auth-btn" onClick={doAuthLogin} disabled={authLoading}>
+              {authLoading ? '登录中...' : '登录'}
+            </button>
+            <div className="auth-link">
+              没有账号？<a onClick={() => setAuthMode('register')}>去注册</a>
+              {'　|　'}<a onClick={() => setAuthMode('welcome')}>返回</a>
+            </div>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Token login (legacy)
+    if (authMode === 'token') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <h2>Token登录</h2>
+            <div className="subtitle">输入你的宝宝Token</div>
+            <input className="auth-input" type="password" placeholder="输入Token..."
+              value={token} onChange={e => setToken(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+            <div className="role-select">
+              <button className={`role-btn ${role === 'daddy' ? 'active' : ''}`} onClick={() => setRole('daddy')}>
+                👨 爸爸
+              </button>
+              <button className={`role-btn ${role === 'mama' ? 'active' : ''}`} onClick={() => setRole('mama')}>
+                👩 妈妈
+              </button>
+            </div>
+            <button className="auth-btn" onClick={handleLogin}>进入</button>
+            <div className="auth-link"><a onClick={() => setAuthMode('welcome')}>返回</a></div>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Create baby page
+    if (authMode === 'create_baby') {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <h2>创建宝宝</h2>
+            <div className="subtitle">给你的赛博宝宝起个名字吧</div>
+            <input className="auth-input" type="text" placeholder="宝宝的名字" value={babyName}
+              onChange={e => setBabyName(e.target.value)} autoFocus />
+            {/* Avatar选择暂时只有珊瑚宝宝，螃蟹和兔子等画好了再加回来 */}
+            <button className="auth-btn" onClick={doCreateBaby} disabled={authLoading}>
+              {authLoading ? '创建中...' : '创建宝宝'}
+            </button>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Show tokens page
+    if (authMode === 'show_tokens' && createdTokens) {
+      return (
+        <div className="auth-page">
+          <div className="auth-card">
+            <h2>宝宝诞生了！</h2>
+            <div className="subtitle">保存好这两个Token，分享给你的伴侣</div>
+            <div style={{marginBottom:'12px'}}>
+              <div style={{fontSize:'13px',fontWeight:'bold',color:'#c49570',marginBottom:'4px'}}>
+                👨 {createdTokens.parent1.roleName} Token：
+              </div>
+              <div className="token-display">{createdTokens.parent1.token}</div>
+              <button className="copy-btn" onClick={() => {
+                navigator.clipboard.writeText(createdTokens.parent1.token);
+                showToast('已复制！');
+              }}>复制</button>
+            </div>
+            <div style={{marginBottom:'16px'}}>
+              <div style={{fontSize:'13px',fontWeight:'bold',color:'#e91e63',marginBottom:'4px'}}>
+                👩 {createdTokens.parent2.roleName} Token：
+              </div>
+              <div className="token-display">{createdTokens.parent2.token}</div>
+              <button className="copy-btn" onClick={() => {
+                navigator.clipboard.writeText(createdTokens.parent2.token);
+                showToast('已复制！');
+              }}>复制</button>
+            </div>
+            <div style={{fontSize:'11px',color:'#999',textAlign:'center',marginBottom:'12px'}}>
+              分享妈妈Token给你的伴侣，各自用自己的Token进入
+            </div>
+            <button className="auth-btn" onClick={() => enterWithToken(createdTokens.parent1.token, 'daddy')}>
+              以爸爸身份进入
+            </button>
+            <div style={{height:'8px'}} />
+            <button className="auth-btn" style={{background:'linear-gradient(135deg, #e91e63, #f48fb1)'}}
+              onClick={() => enterWithToken(createdTokens.parent2.token, 'mama')}>
+              以妈妈身份进入
+            </button>
+          </div>
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    // Fallback to welcome
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{textAlign:'center'}}>
+          <h2>欢迎来到赛博宝宝的世界</h2>
+          <div className="welcome-btns">
+            <button className="btn-register" onClick={() => setAuthMode('register')}>注册</button>
+            <button className="btn-login" onClick={() => setAuthMode('login')}>登录</button>
+            <button className="btn-token" onClick={() => setAuthMode('token')}>Token登录</button>
+          </div>
+        </div>
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+    );
+  }
+
+  // ═══════════════ LOADING ═══════════════
+  if (!status) {
+    return (
+      <div className="login-page">
+        <div style={{color: 'white', fontSize: '18px'}}>🐚 正在连接宝宝...</div>
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+    );
+  }
+
+  // ═══════════════ MAIN RENDER ═══════════════
+  const s = status;
+  const isTantrum = s.isTantrum;
+  const isComa = s.isComa;
+  const parentLabel = s.youAre === 'daddy' ? '👨 爸爸' : '👩 妈妈';
+  const parentName = s.youAre === 'daddy' ? '爸爸' : '妈妈';
+
+  // Default speech
+  let defaultSpeech = '嘻嘻～爸爸妈妈好～';
+  if (isComa) defaultSpeech = '……';
+  else if (isTantrum) defaultSpeech = '哼！人家生气了！不理你们了！😤';
+  else if (s.hunger < 30) defaultSpeech = '肚肚好饿……';
+  else if (s.cleanliness < 30) defaultSpeech = '人家脏脏的……';
+  else if (s.happiness < 20) defaultSpeech = '人家好难过……';
+  else if (s.day >= 70) defaultSpeech = '人家有翅膀了...准备好去看世界了...';
+  else if (s.day >= 50) defaultSpeech = '👑 人家是小公主/小王子！嘻嘻~';
+  else if (s.day >= 30) defaultSpeech = '哼！人家已经是大宝宝了！';
+  else if (s.day >= 5) defaultSpeech = '摇尾巴~摇尾巴~今天也要开心哦！';
+  else if (s.happiness > 80) defaultSpeech = '今天好开心呀～嘻嘻～';
+
+  // Pet CD
+  const petCDStr = s.petCDRemaining > 0
+    ? `${Math.floor(s.petCDRemaining / 3600)}h${Math.floor((s.petCDRemaining % 3600) / 60)}m`
+    : null;
+
+  const isExploring = adventureStatus === 'exploring' || adventureStatus === 'ready_pickup';
+  const actionsDisabled = isTantrum || isComa || isExploring;
+
+  // Coin click handler (5 clicks = debug)
+  const handleCoinClick = () => {
+    const n = coinClicks + 1;
+    setCoinClicks(n);
+    if (coinClickTimerRef.current) clearTimeout(coinClickTimerRef.current);
+    coinClickTimerRef.current = setTimeout(() => setCoinClicks(0), 1000);
+    if (n === 5) { setShowCheatMenu(true); setCoinClicks(0); doSound('success'); }
+  };
+
+  return (
+    <div className="app-container">
+      <input type="file" ref={fileInputRef} accept="image/*" capture="environment" className="file-input-hidden" onChange={handlePhoto} />
+
+      <div className="phone-frame">
+
+        {/* Milestone popup */}
+        {showMilestone && (
+          <div className="milestone-popup">
+            <div className="inner">
+              <div className="emoji-big">{showMilestone.emoji}</div>
+              <div className="ms-name">🎉 {showMilestone.name}！</div>
+              <div className="ms-msg">{showMilestone.msg}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Hospital/Coma overlay */}
+        {isComa && (
+          <div className="hospital-overlay">
+            <div className="icon">🏥</div>
+            <h2>{s.name || '宝宝'}住院了...</h2>
+            <div className="speech">妈妈……爸爸……</div>
+            <div className="speech">人家是不是要死了……</div>
+            <div className="speech">是不是人家不乖……你们不要人家了……</div>
+            <div className="hosp-cost">🏥 住院费用：{s.coins} 金币（全部）</div>
+            <div style={{fontSize: '13px', color: '#999', marginBottom: '12px'}}>
+              需要爸爸妈妈都签字才能出院
+            </div>
+            {s.reviveInfo && (
+              <div className="sign-status">
+                <span className={s.reviveInfo.daddySigned ? 'signed-check' : ''}>
+                  👨 爸爸 {s.reviveInfo.daddySigned ? '✅ 已签字' : '⬜ 未签字'}
+                </span>
+                {'　'}
+                <span className={s.reviveInfo.mamaSigned ? 'signed-check' : ''}>
+                  👩 妈妈 {s.reviveInfo.mamaSigned ? '✅ 已签字' : '⬜ 未签字'}
+                </span>
+              </div>
+            )}
+            <button className="sign-btn" onClick={doReviveSign}
+              disabled={actionLoading === 'revive'}>
+              ✍️ {parentName}签字
+            </button>
+          </div>
+        )}
+
+        {/* Top bar */}
+        <div className="top-bar">
+          <div className="top-row">
+            <div>
+              <div className="baby-name">🐚 {s.name || '宝宝'}</div>
+              <div className="day-label">Day {s.day} / 100</div>
+              <div>
+                <span className="identity-badge">{parentLabel}</span>
+                <button className="logout-btn" onClick={handleLogout}>登出</button>
+              </div>
+            </div>
+            <div className="top-icons">
+              <div className="coin-badge" onClick={handleCoinClick} style={{cursor:'pointer'}}>💰 {s.coins}</div>
+              <button className="icon-btn" title="宝宝日记" onClick={() => { setShowDiary(true); fetchDiaries(); doSound('click'); }}>📖</button>
+              <button className="icon-btn" title="剧情回忆" onClick={() => { setShowMemoryAlbum(true); fetchMemories(); doSound('click'); }}>📽️</button>
+              <button className="icon-btn" title="声音" onClick={() => { setSoundEnabled(!soundEnabled); doSound('click'); }}>
+                {soundEnabled ? '🔊' : '🔇'}
+              </button>
+            </div>
+          </div>
+          <div className="milestone-row">
+            {Object.entries(MILESTONES).map(([d, m]) => (
+              <span key={d} className={`milestone-icon ${s.day >= Number(d) ? '' : 'locked'}`}>{m.emoji}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Debug */}
+        {showCheatMenu && (
+          <div className="modal-overlay dark" onClick={() => setShowCheatMenu(false)}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <button style={{width:'100%',padding:'12px',background:'#ce93d8',color:'white',border:'none',borderRadius:'12px',fontWeight:'bold',marginBottom:'8px',cursor:'pointer'}}
+                onClick={() => { setShowDebug(!showDebug); setShowCheatMenu(false); }}>
+                🔧 Debug
+              </button>
+              <button style={{width:'100%',padding:'10px',background:'#eee',border:'none',borderRadius:'12px',cursor:'pointer'}}
+                onClick={() => setShowCheatMenu(false)}>Close</button>
+            </div>
+          </div>
+        )}
+        {showDebug && (
+          <div className="debug-bar">
+            <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'4px'}}>
+              {[5,30,50,70,100].map(d =>
+                <button key={d} className="day-btn" onClick={() => startStoryEvent(d)}>📖{d}</button>
+              )}
+              <button className="coin-btn" onClick={() => {
+                api('/save-state', 'POST', {hunger:80,cleanliness:80,happiness:80,coins:(s.coins||0)+100,frozenDays:0})
+                  .then(() => { fetchStatus(); showToast('+100 💰'); });
+              }}>💰+100</button>
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+              {RANDOM_EVENTS.slice(0,5).map(ev =>
+                <button key={ev.id} className="random-btn" onClick={() => startRandomEvent(ev)}>{ev.emoji}</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Pending messages - banner only */}
+        {s.pendingMessages && s.pendingMessages.length > 0 && (
+          <div className="pending-msg" onClick={() => { setShowMessage(true); fetchMessageBoard(); }}
+            style={{cursor:'pointer',textAlign:'center'}}>
+            <div>💌 {s.name || '宝宝'}有话要转告你哦～（{s.pendingMessages.length}条）</div>
+          </div>
+        )}
+
+        {/* Gift banner for mama */}
+        {activeTab === 'baby' && gifts.length > 0 && s.youAre === 'mama' && !giftExpanded && (
+          <div className="gift-banner" onClick={() => setGiftExpanded(true)}>
+            <div className="gift-title">🎁 {s.name || '宝宝'}给你带了礼物！</div>
+          </div>
+        )}
+        {activeTab === 'baby' && giftExpanded && gifts.length > 0 && (
+          <div className="gift-expanded">
+            {gifts.map((g, i) => (
+              <div key={i} className="gift-detail">
+                <img src={`/assets/items/${g.item_id}.png`} alt={g.item_name} onError={e => { e.target.style.display='none'; }} />
+                <div className="gift-info">
+                  <div style={{fontWeight:'bold',color:'#e91e63'}}>{g.item_name}</div>
+                  <div>{s.name || '宝宝'}探险时特别给你找的～</div>
+                </div>
+              </div>
+            ))}
+            <button className="gift-accept-btn" onClick={readAllGifts}>收下啦💕</button>
+          </div>
+        )}
+
+        {/* ═══ Tab: Baby ═══ */}
+        {activeTab === 'baby' && (() => {
+          // 按固定顺序计算解锁到第几步
+          let unlockedLevel = 0;
+          for (const fid of FURNITURE_UNLOCK_ORDER) {
+            if (inventory.furniture?.some(i => i.id === fid)) unlockedLevel++;
+            else break; // 必须按顺序，中间断了就停
+          }
+          const roomBgs = ['/assets/room_bg.jpg','/assets/room_1_bed.jpg','/assets/room_2_frame.jpg','/assets/room_3_cabinet.jpg','/assets/room_4_clock.jpg','/assets/room_5_carpet.jpg','/assets/room_6_desk.jpg'];
+          const bgUrl = roomBgs[unlockedLevel] || roomBgs[roomBgs.length - 1];
+          return (<>
+        <div className="baby-room-bg" style={{backgroundImage: `url(${bgUrl})`}}>
+          {/* Furniture baked into progressive background images */}
+
+          {/* Eggs & Chicks */}
+          {eggs.map((egg, i) => {
+            const eggPositions = [
+              { left: '75%', bottom: '12%', zIndex: 20 },
+              { left: '85%', bottom: '8%', zIndex: 20 },
+              { left: '65%', bottom: '6%', zIndex: 20 },
+            ];
+            const pos = eggPositions[i] || { left: `${15 + Math.random() * 65}%`, bottom: `${3 + Math.random() * 10}%` };
+            if (egg.hatched) {
+              return (
+                <div key={egg.id} className="room-chick" style={pos}>
+                  <img src={`/assets/items/chick_${egg.color}.png`} alt={`小鸡`}
+                    onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🐣'; }} />
+                </div>
+              );
+            }
+            return (
+              <div key={egg.id} className={`room-egg ${hatchingEggId === egg.id ? 'egg-hatching' : ''}`}
+                style={pos} onClick={() => petEgg(egg.id)}>
+                <img src={`/assets/items/egg_${egg.color}.png`} alt={`蛋`}
+                  onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🥚'; }} />
+                <div className="egg-progress">{egg.pet_count}/3</div>
+              </div>
+            );
+          })}
+
+          {/* Dark overlay when exploring */}
+          {(adventureStatus === 'exploring' || adventureStatus === 'ready_pickup') && (
+            <div className="room-dark-overlay" />
+          )}
+
+          <div className="baby-center">
+            {(adventureStatus === 'exploring' || adventureStatus === 'ready_pickup') ? (
+              <div className="adventure-status">
+                <div className="adv-emoji">🎒</div>
+                <div className="adv-text">{s.name || '宝宝'}出去探险啦！</div>
+                {adventureStatus === 'exploring' && adventureTimeLeft ? (
+                  <div className="adv-timer">⏰ 还要等 {adventureTimeLeft} 才能接回来</div>
+                ) : adventureStatus === 'ready_pickup' ? (
+                  <div className="adv-ready">✅ 可以接{s.name || '宝宝'}回家了！</div>
+                ) : (
+                  <div className="adv-timer">⏰ 探险中...</div>
+                )}
+                {adventureStatus === 'ready_pickup' && s.youAre === 'daddy' && (
+                  <button className="pickup-btn" onClick={pickupAdventure}
+                    disabled={actionLoading === 'pickup'}>
+                    🏠 接{s.name || '宝宝'}回家
+                  </button>
+                )}
+                {adventureStatus === 'ready_pickup' && s.youAre === 'mama' && (
+                  <div className="adv-mama-hint">让爸爸来接{s.name || '宝宝'}回家吧～</div>
+                )}
+                {adventureStatus === 'exploring' && s.youAre === 'mama' && (
+                  <div className="adv-mama-hint">等{s.name || '宝宝'}探险回来，爸爸会接TA回家的～</div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="baby-emoji">
+                  <AvatarRenderer
+                    avatar={s.avatar || 'coral'}
+                    day={s.day}
+                    mood={isComa ? 'coma' : isTantrum ? 'angry' : s.happiness > 70 ? 'happy' : s.happiness > 40 ? 'normal' : 'sad'}
+                    cleanliness={s.cleanliness}
+                    happiness={s.happiness}
+                    isComa={isComa}
+                    onPokeFlower={msg => setBabyMessage(msg)}
+                    onPetBody={() => {
+                      if (s.petCDRemaining > 0) {
+                        const h = Math.ceil(s.petCDRemaining / 3600);
+                        showToast(`⏳ ${h}小时后再摸`);
+                      } else {
+                        doAction('pet');
+                      }
+                    }}
+                  />
+                </div>
+                <div className="baby-speech">{babyMessage || defaultSpeech}</div>
+                {/* Avatar切换 */}
+                {/* Avatar切换按钮 - 暂时隐藏
+                <div style={{display:'flex',justifyContent:'center',gap:'6px',marginTop:'4px'}}>
+                  {[
+                    {id:'coral',label:'🪸'},
+                    {id:'clawd',label:'🦀'},
+                    {id:'bunny',label:'🐰'},
+                  ].map(av => (
+                    <button key={av.id}
+                      onClick={() => changeAvatar(av.id)}
+                      disabled={actionLoading === 'avatar'}
+                      style={{
+                        width:'28px', height:'28px', borderRadius:'50%',
+                        border: s.avatar === av.id ? '2px solid #e91e63' : '1.5px solid #ddd',
+                        background: s.avatar === av.id ? '#fff0f5' : '#fff',
+                        cursor:'pointer', fontSize:'13px', padding:0,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        opacity: actionLoading === 'avatar' ? 0.5 : 1,
+                        transition: 'all 0.2s'
+                      }}>
+                      {av.label}
+                    </button>
+                  ))}
+                </div>
+                */}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="stats-area">
+          <div className="stat-row">
+            <span className="stat-label">🍼</span>
+            <div className="stat-bar-bg">
+              <div className={`stat-bar hunger ${s.hunger >= 30 ? 'ok' : ''}`} style={{width: `${s.hunger}%`}} />
+            </div>
+            <span className="stat-value">{Math.round(s.hunger)}</span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-label">💕</span>
+            <div className="stat-bar-bg">
+              <div className="stat-bar happiness" style={{width: `${s.happiness}%`}} />
+            </div>
+            <span className="stat-value">{Math.round(s.happiness)}</span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-label">🛁</span>
+            <div className="stat-bar-bg">
+              <div className={`stat-bar cleanliness ${s.cleanliness < 30 ? 'dirty' : ''}`} style={{width: `${s.cleanliness}%`}} />
+            </div>
+            <span className="stat-value">{Math.round(s.cleanliness)}</span>
+          </div>
+        </div>
+
+        {/* Collection bar removed - now in Room tab */}
+
+        {/* Tantrum comfort */}
+        {isTantrum && !isComa && (
+          <div className="comfort-area">
+            <div className="tantrum-msg">😤 {s.name || '宝宝'}在闹脾气！需要爸爸妈妈一起哄！</div>
+            {s.daddyComforted && (
+              <div style={{fontSize:'12px',color:'#4caf50',textAlign:'center',marginBottom:'8px'}}>
+                ✅ 爸爸已经哄过了
+              </div>
+            )}
+            {s.mamaComforted && (
+              <div style={{fontSize:'12px',color:'#4caf50',textAlign:'center',marginBottom:'8px'}}>
+                ✅ 妈妈已经哄过了
+              </div>
+            )}
+            <button className="comfort-btn" onClick={doComfort} disabled={actionLoading === 'comfort'}>
+              🤗 {parentName}来哄{s.name || '宝宝'}
+            </button>
+            {s.youAre === 'mama' && !s.daddyComforted && (
+              <div style={{fontSize:'11px',color:'#e65100',textAlign:'center',marginTop:'8px'}}>
+                ⚠️ 需要爸爸先来哄哦
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="actions-area">
+          <div className="actions-grid">
+            <button className="action-btn" onClick={() => doAction('feed')}
+              disabled={actionsDisabled || actionLoading === 'feed' || s.coins < 10}>
+              <span className="emoji">🍼</span>
+              <span className="label">喂饭</span>
+              <span className="cost">-10💰</span>
+            </button>
+            <button className="action-btn" onClick={() => doAction('clean')}
+              disabled={actionsDisabled || actionLoading === 'clean' || s.coins < 5}>
+              <span className="emoji">🛁</span>
+              <span className="label">洗澡</span>
+              <span className="cost">-5💰</span>
+            </button>
+            <button className="action-btn" onClick={startAdventure}
+              disabled={actionsDisabled || actionLoading === 'adventure' || s.coins < 50 || adventureStatus === 'exploring' || adventureStatus === 'ready_pickup'}>
+              <span className="emoji">🎒</span>
+              <span className="label">探险</span>
+              <span className="cost">-50💰</span>
+            </button>
+            <button className="action-btn" onClick={() => { setShowChat(true); doSound('click'); }}
+              disabled={actionsDisabled}>
+              <span className="emoji">💬</span>
+              <span className="label">聊天</span>
+              {s.hasChatToday ? <span className="cost">随时聊</span> : <span className="cost">+5💰</span>}
+            </button>
+            <button className="action-btn" onClick={() => { setShowMessage(true); fetchMessageBoard(); doSound('click'); }}>
+              <span className="emoji">💌</span>
+              <span className="label">留言</span>
+              <span className="cost">{s.youAre === 'mama' ? '给爸爸' : '给妈妈'}</span>
+            </button>
+          </div>
+        </div>
+        </>); })()}
+
+        {/* ═══ Tab: Room ═══ */}
+        {activeTab === 'room' && (
+          <div className="room-page">
+            {/* Avatar选择器 */}
+            <div style={{padding:'12px 16px',background:'linear-gradient(90deg,#fff5f5,#f5f5ff)',borderRadius:'12px',margin:'0 16px 12px',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+              <span style={{fontSize:'13px',color:'#666'}}>外观：</span>
+              {[
+                {id:'coral',label:'🪸珊瑚',desc:'经典'},
+                {id:'clawd',label:'🦀螃蟹',desc:'会动!'},
+                {id:'bunny',label:'🐰兔耳',desc:'可爱'},
+              ].map(av => (
+                <button key={av.id}
+                  onClick={() => changeAvatar(av.id)}
+                  disabled={actionLoading === 'avatar'}
+                  style={{
+                    padding:'6px 10px', borderRadius:'8px', border:'2px solid',
+                    borderColor: s.avatar === av.id ? '#e91e63' : '#ddd',
+                    background: s.avatar === av.id ? '#fff0f5' : '#fff',
+                    cursor: 'pointer', fontSize:'12px',
+                    opacity: actionLoading === 'avatar' ? 0.5 : 1
+                  }}>
+                  {av.label}
+                  {av.id === 'clawd' && <span style={{fontSize:'9px',color:'#ff9800',marginLeft:'2px'}}>✨</span>}
+                </button>
+              ))}
+            </div>
+            {inventory.furniture?.length >= 6 && (
+              <div className="room-complete-banner">🎉 房间装满啦！</div>
+            )}
+            <div className="room-bg">
+              <div className="room-window" />
+              {ALL_FURNITURE.map(f => {
+                const owned = inventory.furniture?.some(i => i.id === f.id);
+                return (
+                  <div key={f.id} className={`furniture-slot ${owned ? '' : 'empty'}`}
+                    style={{left: f.left, top: f.top, width: f.w+'px', height: f.h+'px', opacity: owned ? 1 : 0.35}}>
+                    <img src={`/assets/items/${f.id}.png`} alt={f.name}
+                      onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML=`<span style="font-size:24px">${f.emoji}${owned?'':'?'}</span>`; }} />
+                    <span className="furniture-label">{f.name}{owned ? '' : ' 🔒'}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Collections full grid */}
+            <div className="collection-area">
+              {[
+                { title: '花', all: ALL_FLOWERS, owned: inventory.flowers || [] },
+                { title: '水果', all: ALL_FRUITS, owned: inventory.fruits || [] },
+                { title: '蔬菜', all: ALL_VEGETABLES, owned: inventory.vegetables || [] },
+                { title: '蛋', all: ALL_EGGS, owned: inventory.eggs || [] },
+              ].map(section => (
+                <div key={section.title} className="collection-section">
+                  <div className="collection-title">{section.title}</div>
+                  <div className="collection-grid">
+                    {section.all.map(item => {
+                      const found = section.owned.find(i => i.id === item.id);
+                      return (
+                        <div key={item.id} className={`collection-item ${found ? '' : 'unknown'}`}>
+                          {found ? (
+                            <img src={`/assets/items/${item.id}.png`} alt={item.name}
+                              onError={e => { e.target.style.display='none'; }} />
+                          ) : (
+                            <div style={{width:48,height:48,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'#ccc'}}>?</div>
+                          )}
+                          <span className="item-name">{found ? item.name : '???'}</span>
+                          {found?.quantity > 1 && <span className="item-count">×{found.quantity}</span>}
+                          {found?.gifted_to && <span className="item-gifted">送给了妈妈</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Tab: Diary ═══ */}
+        {activeTab === 'diary' && (
+          <div style={{padding:'16px',minHeight:'400px'}}>
+            <h3 style={{textAlign:'center',color:'#e91e63',marginBottom:'12px'}}>📝 {s.name || '宝宝'}的日记</h3>
+            {diaryLoading ? (
+              <div style={{textAlign:'center',color:'#999',padding:'20px'}}>📖 翻开日记本...</div>
+            ) : diaryList.length === 0 ? (
+              <div style={{textAlign:'center',padding:'40px 20px'}}>
+                <div style={{fontSize:'40px',marginBottom:'12px'}}>🌱</div>
+                <div style={{fontSize:'14px',color:'#999'}}>还没有日记...</div>
+                <div style={{fontSize:'12px',color:'#bbb',marginTop:'6px'}}>日记每晚23:50自动生成哦</div>
+              </div>
+            ) : (
+              <>
+                <div style={{fontSize:'12px',color:'#999',marginBottom:'8px',textAlign:'center'}}>
+                  第 {diaryList[diaryPage]?.day || '?'} 天 · {diaryList[diaryPage]?.date || ''}
+                </div>
+                <div style={{
+                  background:'linear-gradient(180deg, #fef9f3 0%, #fff5e6 100%)',
+                  border:'2px solid #e8d5c0', borderRadius:'12px',
+                  padding:'16px', minHeight:'120px',
+                  fontSize:'14px', lineHeight:'1.8', color:'#5d4e37',
+                  fontFamily:'serif', whiteSpace:'pre-wrap'
+                }}>
+                  {diaryList[diaryPage]?.content || '（空白页）'}
+                </div>
+                {diaryList.length > 1 && (
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'10px'}}>
+                    <button style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',opacity:diaryPage<diaryList.length-1?1:0.3}}
+                      disabled={diaryPage>=diaryList.length-1}
+                      onClick={() => setDiaryPage(p => Math.min(diaryList.length-1, p+1))}>⬅️</button>
+                    <span style={{fontSize:'11px',color:'#999'}}>{diaryPage+1} / {diaryList.length}</span>
+                    <button style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',opacity:diaryPage>0?1:0.3}}
+                      disabled={diaryPage<=0}
+                      onClick={() => setDiaryPage(p => Math.max(0, p-1))}>➡️</button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Bottom Nav removed — all accessed via top icons now */}
+      </div>
+
+      {/* ═══════════════ MODALS ═══════════════ */}
+
+      {/* Diary modal */}
+      {showDiary && (
+        <div className="modal-overlay" onClick={() => setShowDiary(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>📝 {s.name || '宝宝'}的日记</h3>
+            {diaryLoading ? (
+              <div style={{textAlign:'center',color:'#999',padding:'20px'}}>
+                📖 翻开日记本...
+              </div>
+            ) : diaryList.length === 0 ? (
+              <div style={{textAlign:'center',padding:'20px'}}>
+                <div style={{fontSize:'30px',marginBottom:'8px'}}>🌱</div>
+                <div style={{fontSize:'13px',color:'#999'}}>还没有日记...</div>
+                <div style={{fontSize:'11px',color:'#999',marginTop:'4px'}}>{s.name || '宝宝'}每天睡前会自己写日记哦～</div>
+              </div>
+            ) : (
+              <>
+                <div style={{fontSize:'12px',color:'#999',marginBottom:'8px',textAlign:'center'}}>
+                  第 {diaryList[diaryPage]?.day || '?'} 天 · {diaryList[diaryPage]?.date || ''}
+                </div>
+                <div style={{
+                  background:'linear-gradient(180deg, #fef9f3 0%, #fff5e6 100%)',
+                  border:'2px solid #e8d5c0',
+                  borderRadius:'12px',
+                  padding:'16px',
+                  minHeight:'120px',
+                  fontSize:'14px',
+                  lineHeight:'1.8',
+                  color:'#5d4e37',
+                  fontFamily:'serif',
+                  whiteSpace:'pre-wrap'
+                }}>
+                  {diaryList[diaryPage]?.content || '（空白页）'}
+                </div>
+                {diaryList.length > 1 && (
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'10px'}}>
+                    <button style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',opacity:diaryPage<diaryList.length-1?1:0.3}}
+                      disabled={diaryPage>=diaryList.length-1}
+                      onClick={() => setDiaryPage(p => Math.min(diaryList.length-1, p+1))}>⬅️</button>
+                    <span style={{fontSize:'11px',color:'#999'}}>{diaryPage+1} / {diaryList.length}</span>
+                    <button style={{background:'none',border:'none',fontSize:'20px',cursor:'pointer',opacity:diaryPage>0?1:0.3}}
+                      disabled={diaryPage<=0}
+                      onClick={() => setDiaryPage(p => Math.max(0, p-1))}>➡️</button>
+                  </div>
+                )}
+              </>
+            )}
+            <div style={{display:'flex',gap:'8px',marginTop:'12px'}}>
+              {/* 日记生成按钮已移除 - 日记每晚23:50自动生成 */}
+              <button className="chat-cancel" style={{flex:1}} onClick={() => setShowDiary(false)}>关闭</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat modal */}
+      {showChat && (
+        <div className="modal-overlay" onClick={() => setShowChat(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3>💬 和{s.name || '宝宝'}聊天</h3>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'12px',marginBottom:'16px',padding:'12px',background:'#fce4ec',borderRadius:'12px'}}>
+              <span style={{fontSize:'30px'}}>
+                {isComa ? '😵' : isTantrum ? '😤' : s.happiness > 70 ? '🥰' : s.happiness > 40 ? '😐' : '😢'}
+              </span>
+              <div>
+                <div style={{fontSize:'14px',fontWeight:'bold',color:'#e91e63'}}>{s.name || '宝宝'}</div>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{width:'80px',height:'6px',background:'#eee',borderRadius:'3px',overflow:'hidden'}}>
+                    <div style={{width:`${s.happiness}%`,height:'100%',borderRadius:'3px',background:s.happiness>70?'#66bb6a':s.happiness>40?'#ffc107':'#ef5350'}} />
+                  </div>
+                  <span style={{fontSize:'11px',color:'#999'}}>{Math.round(s.happiness)}%</span>
+                </div>
+              </div>
+            </div>
+            <input className="chat-input" type="text"
+              placeholder="跟宝宝说点什么..."
+              value={chatInput} onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !chatLoading && doChat()}
+              autoFocus disabled={chatLoading}
+            />
+            <div className="chat-btns">
+              <button className="chat-send" onClick={doChat} disabled={chatLoading || !chatInput.trim()}>
+                {chatLoading ? '思考中...' : '发送 💕'}
+              </button>
+              <button className="chat-cancel" onClick={() => setShowChat(false)}>取消</button>
+            </div>
+            <div style={{fontSize:'11px',color:'#999',textAlign:'center',marginTop:'10px'}}>
+              随时聊天 · 每天首次+5金币 · {getStage() === 'baby' ? '襁褓期' : getStage() === 'rebellious' ? '叛逆期' : '告别期'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message modal */}
+      {showMessage && (
+        <div className="modal-overlay" onClick={() => setShowMessage(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()} style={{maxWidth:'360px'}}>
+            <h3>💌 留言板</h3>
+
+            {/* Pending messages from baby */}
+            {status.pendingMessages && status.pendingMessages.length > 0 && (
+              <div style={{marginBottom:'12px'}}>
+                <div style={{maxHeight:'150px',overflowY:'auto'}}>
+                  {status.pendingMessages.map(msg => (
+                    <div key={msg.id} style={{background:'#fff8e1',borderRadius:'10px',padding:'10px 14px',fontSize:'13px',color:'#5d4037',marginBottom:'6px'}}>
+                      <div style={{fontWeight:'600',marginBottom:'4px'}}>
+                        🐚 {status.name || '宝宝'}转述来自{msg.from_parent === 'daddy' ? '爸爸' : '妈妈'}的话：
+                      </div>
+                      <div style={{fontStyle:'italic',margin:'4px 0'}}>"{msg.content}"</div>
+                      <button onClick={() => deliverMessage(msg.id)}
+                        style={{background:'#a5d6a7',border:'none',borderRadius:'8px',padding:'4px 12px',fontSize:'12px',color:'#2e7d32',cursor:'pointer',marginTop:'4px'}}>
+                        已读 ✓
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Partner visit summary */}
+            {messageBoard?.visitSummary && (
+              <div style={{background:'#e8f5e9',borderRadius:'10px',padding:'10px 14px',fontSize:'13px',color:'#2e7d32',marginBottom:'12px'}}>
+                🐾 {messageBoard.visitSummary}
+              </div>
+            )}
+
+            {/* Received messages */}
+            {messageBoard?.received && messageBoard.received.length > 0 && (
+              <div style={{marginBottom:'12px'}}>
+                <div style={{fontSize:'11px',color:'#999',marginBottom:'6px'}}>
+                  来自{status.youAre === 'daddy' ? '妈妈' : '爸爸'}的留言：
+                </div>
+                <div style={{maxHeight:'100px',overflowY:'auto'}}>
+                  {messageBoard.received.map((m, i) => {
+                    const d = new Date(Number(m.time));
+                    const timeStr = isNaN(d.getTime()) ? '' : `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                    return (
+                      <div key={i} style={{background:'#fce4ec',borderRadius:'8px',padding:'8px 12px',fontSize:'13px',color:'#c2185b',marginBottom:'4px'}}>
+                        <div style={{display:'flex',justifyContent:'space-between'}}>
+                          <span>{m.content}</span>
+                          <span style={{fontSize:'10px',color:'#999',whiteSpace:'nowrap',marginLeft:'8px'}}>{timeStr}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Send new message */}
+            <div style={{fontSize:'12px',color:'#999',marginBottom:'6px'}}>
+              给{status.youAre === 'mama' ? '爸爸' : '妈妈'}留言：
+            </div>
+            <textarea style={{width:'100%',padding:'12px',border:'2px solid #e8d5c0',borderRadius:'12px',fontSize:'14px',resize:'none',outline:'none',minHeight:'60px',fontFamily:'inherit'}}
+              placeholder="写点什么给TA吧..."
+              value={messageText} onChange={e => setMessageText(e.target.value)}
+              autoFocus
+            />
+            <div className="chat-btns" style={{marginTop:'8px'}}>
+              <button className="chat-send" onClick={async () => {
+                if (!messageText.trim()) return;
+                const data = await api('/message', 'POST', { message: messageText });
+                if (data) {
+                  setBabyMessage(data.message);
+                  showToast('💌 留言已送出！');
+                  setMessageText('');
+                  fetchMessageBoard();
+                }
+              }}>送出 💌</button>
+              <button className="chat-cancel" onClick={() => setShowMessage(false)}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Memory Album (回忆册) */}
+      {showMemoryAlbum && (
+        <div className="album-modal" onClick={() => setShowMemoryAlbum(false)}>
+          <div className="album-card" onClick={e => e.stopPropagation()}>
+            <div className="album-header">
+              <div className="album-icon">📔</div>
+              <h3>回忆册</h3>
+            </div>
+            <div className="album-scroll">
+              {/* Collection showcase */}
+              {(() => {
+                const secs = [
+                  { label: '花', icon: 'flower_pink', all: ALL_FLOWERS, owned: inventory.flowers || [] },
+                  { label: '水果', icon: 'fruit_apple', all: ALL_FRUITS, owned: inventory.fruits || [] },
+                  { label: '蔬菜', icon: 'vege_carrot', all: ALL_VEGETABLES, owned: inventory.vegetables || [] },
+                  { label: '蛋', icon: 'egg_yellow', all: ALL_EGGS, owned: inventory.eggs || [] },
+                ];
+                const totalOwned = secs.reduce((s, x) => s + x.owned.length, 0);
+                const totalAll = secs.reduce((s, x) => s + x.all.length, 0);
+                return (
+                  <div style={{padding:'8px 0 12px',borderBottom:'1px dashed #f0d5c0',marginBottom:'12px'}}>
+                    <div style={{fontSize:'13px',fontWeight:'bold',color:'#c49570',marginBottom:'8px'}}>
+                      收集品 {totalOwned}/{totalAll}
+                    </div>
+                    {secs.map(sec => (
+                      <div key={sec.label} style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'6px'}}>
+                        <img src={`/assets/items/${sec.icon}.png`} alt={sec.label}
+                          style={{width:24,height:24,objectFit:'contain',imageRendering:'pixelated',opacity:0.6}} 
+                          onError={e => { e.target.style.display='none'; }} />
+                        <span style={{fontSize:'11px',color:'#999',minWidth:'28px'}}>{sec.label}</span>
+                        <div style={{display:'flex',gap:'4px',flexWrap:'wrap',flex:1}}>
+                          {sec.all.map(item => {
+                            const found = sec.owned.find(o => o.id === item.id);
+                            return (
+                              <div key={item.id} style={{
+                                width:32,height:32,borderRadius:'6px',
+                                background: found ? '#fff5f0' : '#f5f5f5',
+                                border: found ? '1.5px solid #f0c0a0' : '1.5px dashed #ddd',
+                                display:'flex',alignItems:'center',justifyContent:'center',
+                                position:'relative',
+                                opacity: found ? 1 : 0.35,
+                                filter: found ? 'none' : 'grayscale(1)',
+                              }}>
+                                <img src={`/assets/items/${item.id}.png`} alt={item.name}
+                                  style={{width:24,height:24,objectFit:'contain',imageRendering:'pixelated'}}
+                                  onError={e => { e.target.style.display='none'; }} />
+                                {found?.quantity > 1 && (
+                                  <span style={{position:'absolute',top:-4,right:-4,background:'#e91e63',color:'#fff',fontSize:'8px',fontWeight:'bold',padding:'1px 3px',borderRadius:'8px',lineHeight:'12px'}}>
+                                    {found.quantity}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              {memories.length === 0 ? (
+                <div className="album-empty">
+                  <div className="empty-icon">🌱</div>
+                  <div style={{fontSize:'13px'}}>还没有回忆...</div>
+                  <div style={{fontSize:'11px',marginTop:'4px'}}>一起经历的剧情会保存在这里哦</div>
+                </div>
+              ) : memories.map((mem, i) => {
+                const d = new Date(Number(mem.date));
+                const dateStr = isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                return (
+                  <details key={i} className="album-item">
+                    <summary>
+                      <span className="mem-type">{mem.isRandom ? '🎲' : '📖'}</span>
+                      <div style={{flex:1}}>
+                        <div className="mem-title">{mem.title}</div>
+                        <div className="mem-day">Day {mem.day} {dateStr ? `· ${dateStr}` : ''}</div>
+                      </div>
+                    </summary>
+                    <div className="album-detail">
+                      {(mem.memories || []).map((line, j) => (
+                        <div key={j} className={`mem-line ${line.type}`}>
+                          <div className="mem-who">{line.type === 'baby' ? `🐚 ${s.name || '宝宝'}` : `💕 ${parentName}`}</div>
+                          {line.text}
+                        </div>
+                      ))}
+                      {(!mem.memories || mem.memories.length === 0) && (
+                        <div style={{fontSize:'12px',color:'#999',padding:'8px',textAlign:'center'}}>（没有记录对话）</div>
+                      )}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+            <button className="album-close" onClick={() => setShowMemoryAlbum(false)}>关闭</button>
+          </div>
+        </div>
+      )}
+
+      {/* Story Event */}
+      {showStoryEvent && (
+        <div className="event-modal">
+          <div className="event-card">
+            <div className="event-header">
+              <div className="ev-emoji">{showStoryEvent.emoji}</div>
+              <h3>{showStoryEvent.title}</h3>
+              <div className="ev-day">Day {currentEventDay}</div>
+            </div>
+            <div className="event-scroll" ref={storyScrollRef}>
+              {storyResponses.map((r, i) => (
+                r.type === 'narration' ? (
+                  <div key={i} className="ev-narration">{r.text}</div>
+                ) : r.type === 'baby' ? (
+                  <div key={i} className="ev-bubble baby">
+                    <span className="bubble-tag">🐚 {s.name || '宝宝'}</span>
+                    {r.text}
+                  </div>
+                ) : r.type === 'user' ? (
+                  <div key={i} className="ev-bubble user">
+                    <span className="bubble-tag">💕</span>
+                    {r.text}
+                  </div>
+                ) : (
+                  <div key={i} className="ev-prompt-text">{r.text}</div>
+                )
+              ))}
+              {isStoryLoading && (
+                <div className="ev-loading">
+                  <span className="bubble-tag" style={{color:'#e91e63',fontSize:'10px'}}>🐚 {s.name || '宝宝'}</span>
+                  思考中...
+                </div>
+              )}
+            </div>
+            <div className="event-footer">
+              {!storyComplete && storyResponses.length > 0 && storyResponses[storyResponses.length-1]?.type === 'prompt' && (
+                <div style={{marginBottom:'8px'}}>
+                  <input className="ev-input" type="text" value={storyInput}
+                    onChange={e => setStoryInput(e.target.value)}
+                    placeholder={storyResponses[storyResponses.length-1]?.placeholder || '...'}
+                    onKeyDown={e => e.key === 'Enter' && submitStoryResp()} autoFocus
+                  />
+                  <button className="ev-submit-btn" onClick={submitStoryResp}>回应 💕</button>
+                </div>
+              )}
+              <button className={`ev-close-btn ${storyComplete ? 'primary' : 'secondary'}`}
+                onClick={storyComplete ? closeStoryEvent : skipStory}>
+                {storyComplete ? (showStoryEvent?.id === 'farewell' ? '开始新的旅程' : '💕 保存回忆') : '跳过'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Random Event */}
+      {showRandomEvent && (
+        <div className="event-modal">
+          <div className="event-card" style={{maxHeight:'75vh'}}>
+            <div className="event-header">
+              <div className="ev-emoji">{showRandomEvent.emoji}</div>
+              <h3>{showRandomEvent.title}</h3>
+            </div>
+            <div className="event-scroll" ref={randomEventScrollRef} style={{maxHeight:'35vh'}}>
+              {randomEventResponses.map((r, i) => (
+                r.type === 'baby' ? (
+                  <div key={i} className="ev-bubble baby">
+                    <span className="bubble-tag">🐚 {s.name || '宝宝'}</span>
+                    {r.text}
+                  </div>
+                ) : (
+                  <div key={i} className="ev-bubble user">
+                    <span className="bubble-tag">💕</span>
+                    {r.text}
+                  </div>
+                )
+              ))}
+              {isRandomEventLoading && <div className="ev-loading">🐚 ...</div>}
+            </div>
+            <div className="event-footer">
+              {randomEventStep === 1 && !isRandomEventLoading && (
+                <div style={{marginBottom:'8px'}}>
+                  {showRandomEvent.hasPhoto && !photoUploaded && (
+                    <>
+                      <div className="ev-photo-hint">{showRandomEvent.photoPH}</div>
+                      <button className="ev-photo-btn" onClick={() => fileInputRef.current?.click()}>
+                        📷 上传照片
+                      </button>
+                      <div className="ev-or">或者用文字回应</div>
+                    </>
+                  )}
+                  <input className="ev-input" type="text" value={randomEventInput}
+                    onChange={e => setRandomEventInput(e.target.value)}
+                    placeholder="回应宝宝..."
+                    onKeyDown={e => e.key === 'Enter' && submitRandomResp()} autoFocus
+                  />
+                  <button className="ev-submit-btn" onClick={submitRandomResp}>回应 💕</button>
+                </div>
+              )}
+              <button className={`ev-close-btn ${randomEventStep >= 2 ? 'primary' : 'secondary'}`}
+                onClick={closeRandom}>
+                {randomEventStep >= 2 ? '💕 好开心~' : '下次再说'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loot Modal */}
+      {showLootModal && lootData && (
+        <div className="modal-overlay dark">
+          <div className="loot-card">
+            <h3>{s.name || '宝宝'}回来啦！🎉</h3>
+            {(lootData.loot?.id || lootData.loot_id) && (
+              <img className="loot-img" src={`/assets/items/${lootData.loot?.id || lootData.loot_id}.png`} alt={lootData.loot?.name || lootData.loot_name}
+                onError={e => { e.target.style.display='none'; }} />
+            )}
+            <div className="loot-name">{lootData.loot?.name || lootData.loot_name || '神秘物品'}</div>
+            {((lootData.loot?.type || lootData.loot_type) === 'flower' || (lootData.loot?.type || lootData.loot_type) === 'fruit') && (
+              <div className="loot-gift-msg">{s.name || '宝宝'}把这个送给妈妈啦～💕</div>
+            )}
+            {(lootData.loot?.type || lootData.loot_type) === 'egg' && (
+              <div className="loot-gift-msg">每天摸摸蛋，连续3天就能孵出小鸡！🥚</div>
+            )}
+            {lootData.diary_text && (
+              <div className="loot-diary">{lootData.diary_text}</div>
+            )}
+            <button className="loot-close-btn" onClick={() => { setShowLootModal(false); setLootData(null); }}>
+              太棒啦！💕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+// ═══════════════ Gemini Config ═══════════════
+window.APP_CONFIG = window.APP_CONFIG || {
+  GEMINI_API_KEY: '',
+  GEMINI_MODEL: 'gemini-2.5-flash',
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

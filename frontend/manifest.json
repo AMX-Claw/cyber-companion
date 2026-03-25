@@ -1,0 +1,21 @@
+{
+  "name": "小珂 - 珊瑚宝宝",
+  "short_name": "小珂",
+  "description": "养育你的珊瑚宝宝 🐚",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ff9a9e",
+  "theme_color": "#ff9a9e",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

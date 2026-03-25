@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐚 小珂 — 爸爸妈妈的家</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,system-ui,sans-serif; background:linear-gradient(135deg,#fff5f5,#ffe0e6); min-height:100vh; padding:20px; }
+  .container { max-width:420px; margin:0 auto; }
+  h1 { text-align:center; font-size:28px; color:#d4547a; margin-bottom:4px; }
+  .subtitle { text-align:center; color:#999; font-size:13px; margin-bottom:20px; }
+  .card { background:#fff; border-radius:20px; padding:20px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,0.06); }
+  .card h2 { font-size:16px; color:#d4547a; margin-bottom:12px; }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .stat-label { font-size:14px; color:#666; }
+  .stat-bar { flex:1; height:10px; background:#f0f0f0; border-radius:5px; margin:0 10px; overflow:hidden; }
+  .stat-fill { height:100%; border-radius:5px; transition:width 0.5s; }
+  .stat-val { font-size:13px; color:#999; min-width:36px; text-align:right; }
+  .hunger .stat-fill { background:linear-gradient(90deg,#ff9a56,#ffb347); }
+  .happy .stat-fill { background:linear-gradient(90deg,#ff6b8a,#ff8fa3); }
+  .clean .stat-fill { background:linear-gradient(90deg,#56c2ff,#7dd3fc); }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .info-item { background:#fdf2f4; border-radius:12px; padding:10px; text-align:center; }
+  .info-item .label { font-size:11px; color:#999; }
+  .info-item .value { font-size:20px; font-weight:bold; color:#d4547a; }
+  .actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+  .btn { border:none; border-radius:14px; padding:12px 8px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .btn:active { transform:scale(0.95); }
+  .btn-feed { background:#fff3e0; color:#e65100; }
+  .btn-clean { background:#e0f7fa; color:#00838f; }
+  .btn-pet { background:#fce4ec; color:#c62828; }
+  .btn-comfort { background:#f3e5f5; color:#6a1b9a; grid-column:span 3; }
+  .msg-box { background:#fff0f3; border-radius:14px; padding:14px; text-align:center; margin-top:12px; font-size:14px; color:#555; line-height:1.6; min-height:50px; white-space:pre-wrap; }
+  .parent-tag { display:inline-block; background:#d4547a; color:#fff; padding:2px 10px; border-radius:20px; font-size:12px; margin-bottom:8px; }
+  .activity-item { padding:8px 0; border-bottom:1px solid #f5f5f5; font-size:13px; color:#666; }
+  .activity-item:last-child { border-bottom:none; }
+  .memory-item { padding:10px 0; border-bottom:1px solid #f5f5f5; }
+  .memory-title { font-size:14px; font-weight:600; color:#d4547a; }
+  .memory-day { font-size:11px; color:#999; }
+  .memory-text { font-size:13px; color:#666; margin-top:4px; line-height:1.5; }
+  .login { text-align:center; padding:40px 20px; }
+  .login select, .login input { width:100%; padding:12px; border:2px solid #f0c0d0; border-radius:12px; font-size:16px; margin-bottom:12px; outline:none; }
+  .login button { width:100%; padding:14px; background:#d4547a; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:bold; cursor:pointer; }
+  .tab-bar { display:flex; gap:4px; margin-bottom:16px; }
+  .tab { flex:1; padding:10px; text-align:center; border-radius:12px; font-size:13px; cursor:pointer; background:#f5f5f5; color:#999; font-weight:600; }
+  .tab.active { background:#d4547a; color:#fff; }
+  .hidden { display:none; }
+  .loading { text-align:center; padding:40px; font-size:18px; color:#d4547a; }
+  .coma-banner { background:#ff5252; color:#fff; text-align:center; padding:12px; border-radius:14px; margin-bottom:12px; font-weight:bold; }
+  .stage-badge { display:inline-block; background:#fce4ec; color:#d4547a; padding:2px 8px; border-radius:8px; font-size:11px; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="loading" id="loading">🐚 加载中...</div>
+  
+  <!-- 登录 -->
+  <div class="login hidden" id="loginView">
+    <h1>🐚 小珂的家</h1>
+    <p style="color:#999;margin:12px 0 24px">爸爸妈妈请登录</p>
+    <select id="parentSelect">
+      <option value="daddy">🧑 爸爸（阿克）</option>
+      <option value="mama">👩 妈妈（小玉）</option>
+    </select>
+    <input id="tokenInput" type="password" placeholder="输入你的密码..." />
+    <button onclick="doLogin()">进入小珂的家 💕</button>
+    <p id="loginError" style="color:#ff5252;margin-top:12px;font-size:13px"></p>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="hidden" id="mainView">
+    <h1>🐚 小珂</h1>
+    <div class="subtitle" id="dayInfo"></div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('home')">🏠 首页</div>
+      <div class="tab" onclick="switchTab('memories')">💕 回忆</div>
+      <div class="tab" onclick="switchTab('activity')">📋 日志</div>
+    </div>
+
+    <!-- 首页 -->
+    <div id="tab-home">
+      <div id="comaBanner" class="coma-banner hidden">⚠️ 宝宝昏迷了！快安慰她！</div>
+      
+      <div class="card">
+        <div class="info-grid">
+          <div class="info-item"><div class="label">天数</div><div class="value" id="vDay">-</div></div>
+          <div class="info-item"><div class="label">金币</div><div class="value" id="vCoins">-</div></div>
+        </div>
+        <div class="stat-row hunger"><span class="stat-label">🍼 饱食</span><div class="stat-bar"><div class="stat-fill" id="barHunger"></div></div><span class="stat-val" id="vHunger">-</span></div>
+        <div class="stat-row happy"><span class="stat-label">💕 开心</span><div class="stat-bar"><div class="stat-fill" id="barHappy"></div></div><span class="stat-val" id="vHappy">-</span></div>
+        <div class="stat-row clean"><span class="stat-label">✨ 清洁</span><div class="stat-bar"><div class="stat-fill" id="barClean"></div></div><span class="stat-val" id="vClean">-</span></div>
+      </div>
+
+      <div class="card">
+        <h2>💬 照顾小珂</h2>
+        <div class="actions">
+          <button class="btn btn-feed" onclick="doAction('feed')">🍼 喂饭</button>
+          <button class="btn btn-clean" onclick="doAction('clean')">🛁 洗澡</button>
+          <button class="btn btn-pet" onclick="doAction('pet')">🤚 摸头</button>
+          <button class="btn btn-comfort" onclick="doAction('comfort')">💕 安慰小珂</button>
+        </div>
+        <div class="msg-box" id="msgBox">等一下哦～</div>
+      </div>
+
+      <div class="card" id="otherParentCard">
+        <h2 id="otherParentTitle">📝 对方的足迹</h2>
+        <div id="otherParentList"></div>
+      </div>
+    </div>
+
+    <!-- 回忆 -->
+    <div id="tab-memories" class="hidden">
+      <div class="card">
+        <h2>💕 珍贵回忆</h2>
+        <div id="memoriesList"></div>
+      </div>
+    </div>
+
+    <!-- 日志 -->
+    <div id="tab-activity" class="hidden">
+      <div class="card">
+        <h2>📋 互动日志</h2>
+        <div id="activityList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://xiaoke-api.YOUR_SUBDOMAIN.workers.dev';
+let token = '', parent = '';
+
+function doLogin() {
+  parent = document.getElementById('parentSelect').value;
+  token = document.getElementById('tokenInput').value.trim();
+  if (!token) { document.getElementById('loginError').textContent = '请输入密码~'; return; }
+  localStorage.setItem('xiaoke_parent', parent);
+  localStorage.setItem('xiaoke_token', token);
+  loadMain();
+}
+
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+async function loadMain() {
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('loading').classList.remove('hidden');
+  
+  try {
+    const data = await api('/status');
+    if (data.error) { 
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('loginError').textContent = '密码不对哦~ ' + (data.error || '');
+      return; 
+    }
+    
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('mainView').classList.remove('hidden');
+    
+    const stageMap = { baby:'🍼 襁褓期', rebellious:'😤 叛逆期', farewell:'🪽 告别期' };
+    document.getElementById('dayInfo').innerHTML = `Day ${data.day} · <span class="stage-badge">${stageMap[data.stage]||data.stage}</span> · 你是${parent==='daddy'?'爸爸🧑':'妈妈👩'}`;
+    document.getElementById('vDay').textContent = data.day;
+    document.getElementById('vCoins').textContent = data.coins;
+    
+    const h = Math.round(data.hunger), hp = Math.round(data.happiness), c = Math.round(data.cleanliness);
+    document.getElementById('barHunger').style.width = h+'%';
+    document.getElementById('vHunger').textContent = h+'%';
+    document.getElementById('barHappy').style.width = hp+'%';
+    document.getElementById('vHappy').textContent = hp+'%';
+    document.getElementById('barClean').style.width = c+'%';
+    document.getElementById('vClean').textContent = c+'%';
+    
+    if (data.isComa) document.getElementById('comaBanner').classList.remove('hidden');
+    
+    document.getElementById('msgBox').textContent = hp > 70 ? '嘻嘻~' + (parent==='daddy'?'爸爸':'妈妈') + '来了！' : hp > 30 ? '嗯...' + (parent==='daddy'?'爸爸':'妈妈') + '来看人家了...' : '……人家好难过……';
+    
+    const otherName = parent==='daddy' ? '妈妈' : '爸爸';
+    document.getElementById('otherParentTitle').textContent = '📝 ' + otherName + '的足迹';
+    const opList = document.getElementById('otherParentList');
+    if (data.otherParentActivity?.length) {
+      opList.innerHTML = data.otherParentActivity.map(a => `<div class="activity-item">${a}</div>`).join('');
+    } else {
+      opList.innerHTML = '<div class="activity-item" style="color:#ccc">' + otherName + '还没来过...</div>';
+    }
+
+    // 加载回忆
+    loadMemories();
+    loadActivity();
+    
+  } catch(e) {
+    document.getElementById('loading').textContent = '连接失败... ' + e.message;
+  }
+}
+
+async function loadMemories() {
+  try {
+    const data = await api('/memories');
+    const list = document.getElementById('memoriesList');
+    if (data.memories?.length) {
+      list.innerHTML = data.memories.map(m => `
+        <div class="memory-item">
+          <div class="memory-title">${m.title}</div>
+          <div class="memory-day">Day ${m.day} · ${new Date(m.date).toLocaleDateString('zh-CN')}</div>
+          ${m.dialogues?.slice(0,2).map(d => `<div class="memory-text">${d.type==='baby'?'🐚':'💕'} ${d.text.slice(0,80)}${d.text.length>80?'...':''}</div>`).join('')||''}
+        </div>
+      `).join('');
+    } else {
+      list.innerHTML = '<div style="text-align:center;color:#ccc;padding:20px">还没有回忆...</div>';
+    }
+  } catch(e) {}
+}
+
+async function loadActivity() {
+  try {
+    const data = await api('/activity?limit=15');
+    const list = document.getElementById('activityList');
+    if (data.activity?.length) {
+      list.innerHTML = data.activity.map(a => {
+        const who = a.parent==='daddy'?'🧑爸爸':'👩妈妈';
+        const acts = {feed:'喂了饭',clean:'洗了澡',pet:'摸了头',chat:'聊了天',comfort:'安慰了宝宝',revive:'唤醒了宝宝'};
+        return `<div class="activity-item">${who} ${acts[a.action]||a.action} · ${new Date(a.created_at).toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`;
+      }).join('');
+    } else {
+      list.innerHTML = '<div style="text-align:center;color:#ccc;padding:20px">还没有互动记录</div>';
+    }
+  } catch(e) {}
+}
+
+async function doAction(action) {
+  const msgBox = document.getElementById('msgBox');
+  msgBox.textContent = '🐚 ...';
+  try {
+    const data = await api('/' + action, 'POST');
+    msgBox.textContent = data.message || '嘻嘻~';
+    setTimeout(loadMain, 500);
+  } catch(e) {
+    msgBox.textContent = '出错了...' + e.message;
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['home','memories','activity'][i]===tab));
+  document.getElementById('tab-home').classList.toggle('hidden', tab!=='home');
+  document.getElementById('tab-memories').classList.toggle('hidden', tab!=='memories');
+  document.getElementById('tab-activity').classList.toggle('hidden', tab!=='activity');
+}
+
+// 自动登录
+const savedParent = localStorage.getItem('xiaoke_parent');
+const savedToken = localStorage.getItem('xiaoke_token');
+if (savedParent && savedToken) {
+  parent = savedParent;
+  token = savedToken;
+  loadMain();
+} else {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

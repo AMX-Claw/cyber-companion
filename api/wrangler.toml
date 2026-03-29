@@ -1,0 +1,24 @@
+name = "xiaoke-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "xiaoke-db"
+database_id = "51cdbaa0-5f7c-452e-a2af-fa990df8d217"
+
+# R2头像上传暂时关闭（需要在Cloudflare Dashboard启用R2）
+# [[r2_buckets]]
+# binding = "AVATAR_BUCKET"
+# bucket_name = "xiaoke-avatars"
+
+[vars]
+GEMINI_API_KEY = "AIzaSyCLEE3Mbv_w938vfZmFNwTe8Jn9rV8FtPA"
+
+# Cron Trigger: 每天 UTC 12:50 = AEDT 23:50 自动生成所有宝宝日记
+[triggers]
+crons = ["50 12 * * *"]
+
+# 鉴权 token 用 wrangler secret 设置：
+# wrangler secret put DADDY_TOKEN
+# wrangler secret put MAMA_TOKEN

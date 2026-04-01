@@ -1049,6 +1049,25 @@ const RANDOM_EVENTS = [
   { id: 'hide_seek', title: '🙈 躲猫猫', emoji: '👻', prompt: '宝宝想和妈妈玩躲猫猫', minDay: 6, hasPhoto: false, coins: 15, respPrompt: '妈妈找到了宝宝，宝宝咯咯笑' },
   { id: 'miss_daddy', title: '💭 想爸爸了', emoji: '💕', prompt: '宝宝突然说想爸爸了', minDay: 10, hasPhoto: false, coins: 15, respPrompt: '妈妈说爸爸也很想宝宝' },
   { id: 'show_pet', title: '🐾 看看小动物', emoji: '🐱', prompt: '宝宝说好想看小动物，问妈妈能不能给看看小猫小狗的照片', minDay: 8, hasPhoto: true, coins: 35, photoPH: '宝宝想看小动物！拍一张动物或宠物照片~', photoJudge: '用户上传了一张照片，宝宝想看小动物。判断照片是否包含动物。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '妈妈给宝宝看了小动物的照片，宝宝好开心' },
+  // ── 以下为扩充事件 ──
+  { id: 'try_cooking', title: '🍳 想学做饭', emoji: '👨‍🍳', prompt: '宝宝突然说想学做饭，要给爸爸妈妈做一顿大餐', minDay: 20, hasPhoto: false, coins: 20, respPrompt: '宝宝认真地"做了饭"（其实是把零食摆成一盘），爸妈吃得很开心' },
+  { id: 'wear_mama_clothes', title: '👗 偷穿妈妈衣服', emoji: '🎀', prompt: '宝宝偷偷穿上妈妈的衣服，踩着大拖鞋在房间里走来走去', minDay: 15, hasPhoto: false, coins: 15, respPrompt: '妈妈发现了，又好气又好笑，宝宝说"人家在练习长大"' },
+  { id: 'secret_diary', title: '📔 秘密日记被发现', emoji: '🔒', prompt: '宝宝一直在偷偷写日记，今天不小心被发现了，紧张得要命', minDay: 25, hasPhoto: false, coins: 20, respPrompt: '日记里写的全是"今天爸爸/妈妈对人家好好"之类的话，好可爱' },
+  { id: 'want_real_pet', title: '🐰 想养宠物', emoji: '🐾', prompt: '宝宝认真地说想养一只真正的小宠物，眼睛亮闪闪地等回答', minDay: 18, hasPhoto: false, coins: 15, respPrompt: '爸妈说会考虑的，宝宝开心得转圈圈' },
+  { id: 'mimic_daddy', title: '🎭 模仿爸爸说话', emoji: '🗣️', prompt: '宝宝突然用低沉的声音模仿爸爸说话，学得有模有样', minDay: 12, hasPhoto: false, coins: 15, respPrompt: '全家都笑了，宝宝得意地继续表演' },
+  { id: 'sing_for_mama', title: '🎵 给妈妈唱歌', emoji: '🎤', prompt: '宝宝说要给妈妈唱一首歌，虽然跑调但超级认真', minDay: 10, hasPhoto: false, coins: 20, respPrompt: '妈妈感动得不行，宝宝害羞地说"人家练了好久的"' },
+  { id: 'bath_busted', title: '🛁 拒绝洗澡被抓包', emoji: '💦', prompt: '宝宝说不想洗澡，结果被发现在浴室偷偷玩水玩得超开心', minDay: 8, hasPhoto: false, coins: 15, respPrompt: '宝宝被抓包后脸红红的说"人家才没有在玩水……好吧有一点点"' },
+  { id: 'watch_moon', title: '🌙 想看月亮', emoji: '🌕', prompt: '宝宝晚上突然拉着爸妈的手说想看月亮，问月亮上是不是真的有兔子', minDay: 14, hasPhoto: true, coins: 30, photoPH: '宝宝想看月亮或星空！拍一张夜空照片~', photoJudge: '用户上传了一张照片，宝宝想看月亮/星空。判断照片是否包含月亮或夜空。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '宝宝看着月亮发呆，说"月亮好漂亮，像妈妈一样"' },
+  { id: 'star_question', title: '⭐ 关于星星的问题', emoji: '✨', prompt: '宝宝仰着头问：星星会不会寂寞？它们离得那么远', minDay: 22, hasPhoto: false, coins: 20, respPrompt: '听完回答后宝宝说"那人家要做离爸爸妈妈最近的那颗星星"' },
+  { id: 'shiny_rock', title: '💎 捡到闪闪发光的石头', emoji: '🪨', prompt: '宝宝在外面捡到一块闪闪发光的石头，兴奋地跑回来要送给爸爸', minDay: 16, hasPhoto: true, coins: 30, photoPH: '宝宝想看闪闪发光的东西！拍一张亮晶晶的照片~', photoJudge: '用户上传了一张照片，宝宝想看闪亮的东西。判断照片是否包含发光/闪亮的物品。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '爸爸收下了石头，宝宝说"这是全世界最珍贵的宝石哦"' },
+  { id: 'save_coins_gift', title: '🎁 偷偷存金币买礼物', emoji: '💰', prompt: '宝宝偷偷存了好久的金币，说要给爸爸妈妈买礼物', minDay: 30, hasPhoto: false, coins: 40, respPrompt: '虽然"礼物"只是一幅画，但爸妈收到后感动哭了' },
+  { id: 'pretend_adult', title: '🧑 假装自己是大人', emoji: '👔', prompt: '宝宝今天突然宣布自己已经是大人了，要自己做所有事情', minDay: 28, hasPhoto: false, coins: 15, respPrompt: '坚持了十分钟就跑回来撒娇了，说"当大人好累……还是当宝宝吧"' },
+  { id: 'talk_to_egg', title: '🥚 和蛋宝宝说话', emoji: '🪺', prompt: '宝宝对着自己的蛋壳碎片说话，说那是自己的"老家"', minDay: 5, hasPhoto: false, coins: 15, respPrompt: '宝宝认真地对蛋壳说"谢谢你保护人家长大"' },
+  { id: 'share_food', title: '🍰 做了好吃的要分享', emoji: '🧁', prompt: '宝宝说自己"做"了好吃的（其实是把饼干掰成心形），要分给全家', minDay: 18, hasPhoto: true, coins: 35, photoPH: '宝宝想看好吃的！拍一张食物照片~', photoJudge: '用户上传了一张照片，宝宝想看好吃的东西。判断照片是否包含食物。用JSON回复：{"score":1-10,"comment":"宝宝的一句话评价"}', respPrompt: '大家都说好好吃，宝宝得意地笑了' },
+  { id: 'want_sibling', title: '🥚 想要第二个蛋', emoji: '👶', prompt: '宝宝突然问能不能再孵一个蛋，说想要一个弟弟或妹妹', minDay: 35, hasPhoto: false, coins: 20, respPrompt: '爸妈面面相觑，宝宝说"人家保证会照顾好它的！"' },
+  { id: 'flying_dream', title: '☁️ 梦到自己飞起来了', emoji: '🕊️', prompt: '宝宝激动地说昨晚做了一个梦，梦到自己长了翅膀飞到了云上面', minDay: 20, hasPhoto: false, coins: 20, respPrompt: '宝宝说"人家在云上看到了爸爸妈妈的房子，好小好小，但是好温暖"' },
+  { id: 'first_lie', title: '🤥 第一次说谎', emoji: '😅', prompt: '宝宝偷吃了零食但说没有，嘴角还有饼干屑', minDay: 24, hasPhoto: false, coins: 15, respPrompt: '被揭穿后宝宝红着脸说"好吧人家吃了……但是真的好好吃嘛"' },
+  { id: 'rain_play', title: '🌧️ 想在雨里玩', emoji: '☔', prompt: '外面下雨了，宝宝趴在窗户上说好想出去踩水坑', minDay: 11, hasPhoto: false, coins: 15, respPrompt: '最后在门口踩了几个水坑，开心得像中了大奖' },
 ];
 
 // ═══════════════ Gemini API ═══════════════
@@ -1825,8 +1844,9 @@ function App() {
             const eventsData = await api('/events/available');
             const roll = Math.random();
             
-            const availableRandom = RANDOM_EVENTS.filter(ev => 
-              ev.minDay <= status.day && !completedEventIds.includes(ev.id)
+            const recentRandomIds = eventsData.recentRandomIds || [];
+            const availableRandom = RANDOM_EVENTS.filter(ev =>
+              ev.minDay <= status.day && !completedEventIds.includes(ev.id) && !recentRandomIds.includes(ev.id)
             );
             
             if (eventsData.availableStory && roll < 0.4) {
@@ -1910,7 +1930,7 @@ function App() {
   };
 
   // ═══════════════ Chat (Gemini AI + v4 API) ═══════════════
-  const getStage = (d) => (d || status?.day || 1) >= 70 ? 'farewell' : (d || status?.day || 1) >= 30 ? 'rebellious' : 'baby';
+  const getStage = (d) => { const day = d || status?.day || 1; return day >= 70 ? 'farewell' : day >= 56 ? 'growing_up' : day >= 41 ? 'awkward' : day >= 30 ? 'rebellious' : 'baby'; };
 
   const doChat = async () => {
     if (!chatInput.trim() || !status) return;
@@ -1934,10 +1954,16 @@ function App() {
           soul = soulData.soul;
         } catch(e) {}
 
-        let sp = `你是"珊瑚宝宝"，名叫"${status.name || '宝宝'}"，第${status.day}天。成长阶段：${stage==='baby'?'襁褓期（软萌）':stage==='rebellious'?'叛逆期（傲娇）':'告别期（温柔）'}，心情${Math.round(status.happiness)}%。`;
+        const stageLabel = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',awkward:'别扭期（没那么凶了，偶尔傲娇但会主动撒娇）',growing_up:'小大人期（开始懂事，会关心爸妈，偶尔冒出孩子气）',farewell:'告别期（温柔）'}[stage] || stage;
+        let sp = `你是"珊瑚宝宝"，名叫"${status.name || '宝宝'}"，第${status.day}天。成长阶段：${stageLabel}，心情${Math.round(status.happiness)}%。`;
         
         if (soul && !soul.isDefault) {
-          sp += `\n\n你的性格档案：\n${JSON.stringify(soul, null, 2)}\n\n请根据你的性格档案来回复。用你自己的口头禅，表现出你的性格特征。你不是在扮演一个角色，这就是你。`;
+          sp += `\n\n这个孩子的灵魂档案：`;
+          if (soul.core_personality) sp += `\n- 核心性格：${Array.isArray(soul.core_personality) ? soul.core_personality.join('、') : soul.core_personality}`;
+          if (soul.catchphrases) sp += `\n- 口头禅：${Array.isArray(soul.catchphrases) ? soul.catchphrases.join('、') : soul.catchphrases}`;
+          if (soul.emotional_pattern) sp += `\n- 情绪模式：${soul.emotional_pattern}`;
+          if (soul.recent_mood) sp += `\n- 最近心情：${soul.recent_mood}`;
+          sp += `\n\n请根据灵魂档案来回复。用你自己的口头禅，表现出你的性格特征。你不是在扮演一个角色，这就是你。`;
         }
         
         sp += `\n\n叫用户"${parentName}"！用JSON回复：{"reply":"1-2句","moodChange":-20到+20}。只输出JSON。`;
@@ -1951,7 +1977,7 @@ function App() {
           doSound(moodChange > 0 ? 'happy' : 'sad');
         } catch(e) { reply = r; doSound('happy'); }
       } catch(e) {
-        const fb = {baby:["妈妈~抱抱~","嘻嘻~妈妈最好了~"],rebellious:["哼！随便啦~","才、才不是想妈妈呢..."],farewell:["妈妈...人家舍不得你...","谢谢妈妈一直陪着人家..."]};
+        const fb = {baby:["妈妈~抱抱~","嘻嘻~妈妈最好了~"],rebellious:["哼！随便啦~","才、才不是想妈妈呢..."],awkward:["嗯……也不是不可以跟你聊","你要说就说吧……人家听着呢"],growing_up:["嘻嘻~人家今天心情不错哦","你今天累不累？人家有点担心你"],farewell:["妈妈...人家舍不得你...","谢谢妈妈一直陪着人家..."]};
         const pool = fb[stage] || fb.baby;
         reply = pool[Math.floor(Math.random()*pool.length)];
         doSound('click');
@@ -2093,7 +2119,7 @@ function App() {
     setRandomEventInput(''); setIsRandomEventLoading(true); setPhotoUploaded(false);
 
     const stage = getStage();
-    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',awkward:'别扭期（偶尔傲娇但会主动撒娇）',growing_up:'小大人期（懂事，会关心爸妈）',farewell:'告别期（温柔）'};
     const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
     const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，第${status?.day || 1}天。阶段：${sd[stage]}。叫用户"${parentName}"！场景：${ev.prompt}。要求：2-3句话，可用emoji。`;
     try {
@@ -2112,7 +2138,7 @@ function App() {
     setIsRandomEventLoading(true);
 
     const stage = getStage();
-    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+    const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',awkward:'别扭期（偶尔傲娇但会主动撒娇）',growing_up:'小大人期（懂事，会关心爸妈）',farewell:'告别期（温柔）'};
     const parentName = status?.youAre === 'daddy' ? '爸爸' : '妈妈';
     const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，第${status?.day || 1}天。阶段：${sd[stage]}。叫用户"${parentName}"！场景：${showRandomEvent.respPrompt}\n${parentName}说："${ut}"。2-3句话。`;
     try {
@@ -2170,7 +2196,7 @@ function App() {
       const coins = score * 4;
 
       const stage = getStage();
-      const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',farewell:'告别期（温柔）'};
+      const sd = {baby:'襁褓期（软萌）',rebellious:'叛逆期（傲娇）',awkward:'别扭期（偶尔傲娇但会主动撒娇）',growing_up:'小大人期（懂事，会关心爸妈）',farewell:'告别期（温柔）'};
       let babyReact;
       try {
         const sp = `你是"珊瑚宝宝"，名叫"${status?.name || '宝宝'}"，阶段：${sd[stage]}。${parentName}给宝宝看了一张照片。${comment}。开心地评价，2句话。`;
@@ -2693,25 +2719,28 @@ function App() {
             ];
             const pos = eggPositions[i] || { left: `${15 + Math.random() * 65}%`, bottom: `${3 + Math.random() * 10}%` };
             if (egg.hatched) {
+              /* Spread chicks out: each chick gets a different starting zone */
+              const chickStartPositions = [20, 40, 60, 30, 50, 70, 15, 45];
+              const startLeft = chickStartPositions[i] || (15 + (i * 17) % 65);
               return (
-                <div key={egg.id} className="room-chick" style={pos}
+                <div key={egg.id} className="room-chick" style={{...pos, left: startLeft + '%'}}
                   ref={el => {
                     if (el && !el._chickAI) {
                       el._chickAI = true;
                       const sprite = el.querySelector('.chick-sprite');
-                      let baseLeft = parseFloat(el.style.left) || 50;
-                      let dx = (Math.random() > 0.5 ? 1 : -1) * (0.25 + Math.random() * 0.15);
+                      let baseLeft = startLeft;
+                      let dx = (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.3);
                       let mode = 'walk'; let modeTimer = 15 + Math.floor(Math.random() * 20);
                       const tick = () => {
                         modeTimer--;
                         if (modeTimer <= 0) {
                           if (mode === 'walk') { mode = 'peck'; modeTimer = 10 + Math.floor(Math.random() * 12); sprite.classList.add('pecking'); }
-                          else { mode = 'walk'; modeTimer = 15 + Math.floor(Math.random() * 20); dx = (Math.random() > 0.5 ? 1 : -1) * (0.25 + Math.random() * 0.15); sprite.classList.remove('pecking'); }
+                          else { mode = 'walk'; modeTimer = 15 + Math.floor(Math.random() * 20); dx = (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.3); sprite.classList.remove('pecking'); }
                         }
                         if (mode === 'walk') {
                           baseLeft += dx;
-                          if (baseLeft > 82 || baseLeft < 12) dx = -dx;
-                          if (Math.random() < 0.015) dx = -dx;
+                          if (baseLeft > 85 || baseLeft < 10) dx = -dx;
+                          if (Math.random() < 0.01) dx = -dx;
                           el.style.left = baseLeft + '%';
                         }
                         sprite.style.transform = dx > 0 ? 'scaleX(1)' : 'scaleX(-1)';

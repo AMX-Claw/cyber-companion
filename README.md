@@ -42,3 +42,5 @@ CLOUDFLARE_API_TOKEN=$(security find-generic-password -s "openclaw-cloudflare-ap
 - 部署前 `git commit` 确保改动不丢
 - Cloudflare Pages项目名是 `xiaoke`（不是 `xiaoke-1po`）
 - 日记是Worker cron trigger自动生成，跟🦞无关
+
+

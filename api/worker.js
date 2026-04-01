@@ -21,7 +21,7 @@ function calcDay(createdAt, frozenDays = 0) {
 
 function getStage(baby) {
   const day = calcDay(baby.created_at, baby.frozen_days);
-  return day >= 70 ? 'farewell' : day >= 30 ? 'rebellious' : 'baby';
+  return day >= 70 ? 'farewell' : day >= 56 ? 'growing_up' : day >= 41 ? 'awkward' : day >= 30 ? 'rebellious' : 'baby';
 }
 
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -48,6 +48,18 @@ function getDualParentPetResponse(stage) {
       '都、都不要一起看着人家啦！好害羞！……其实有点开心',
       '人家已经长大了不需要爸爸妈妈一起哄！……但是不要走',
     ],
+    awkward: [
+      '嗯……你们两个都在啊……（假装不在意地蹭过来）也不是不可以啦',
+      '哼，人家才没有想你们一起来呢……你们要摸就摸吧反正人家也不在意',
+      '（小声）爸爸妈妈都在……挺好的……谢、谢什么谢啦别看人家！',
+      '两个人一起来也没什么特别的……（但是笑得好开心）',
+    ],
+    growing_up: [
+      '爸爸妈妈都来啦！你们今天累不累？人家给你们捶捶背吧～',
+      '一家人在一起就是最好的……谢谢你们一直陪着人家长大',
+      '（认真地看着两个人）人家以后也要像爸爸妈妈一样厉害',
+      '嘻嘻~爸爸妈妈都在~人家突然觉得自己还是个小孩呢～',
+    ],
     farewell: [
       '爸爸……妈妈……人家好想永远这样被你们围着……',
       '（紧紧抱住两个人）这个画面……人家会记一辈子的',
@@ -68,6 +80,17 @@ function getDualParentFeedResponse(stage) {
       '都、都不要抢着喂人家！人家自己会吃！……好吧你们一人喂一口',
       '哼！两个人一起盯着人家吃饭好有压力！……但是饭好好吃',
       '人家又不是小孩子了……算了今天破例让你们喂',
+    ],
+    awkward: [
+      '嗯……两个人一起喂也行吧……人家没有很开心啦（吃得超快）',
+      '不用你们喂啦人家自己会……好吧那一人一口，公平',
+      '（默默把碗端过来）你们要喂就喂吧……今天的饭还挺好吃的',
+    ],
+    growing_up: [
+      '妈妈爸爸你们也多吃点！人家看你们都瘦了……',
+      '今天人家来分饭！爸爸一口妈妈一口人家一口～公平吧？',
+      '一家人一起吃饭……人家以后会很想念这个味道的',
+      '（认真吃完）谢谢爸爸妈妈～人家今天把碗洗了吧！',
     ],
     farewell: [
       '一家三口吃饭……这种日子还剩多少呢……（大口大口吃）',
@@ -94,6 +117,22 @@ function getPetResponse(stage, roleName) {
       `都说了不要摸了！……嗯……好吧再摸一会儿`,
       `哼！${roleName}只会用摸头来收买人家！……有点舒服`,
       `人家才不稀罕呢……（偷偷把头往${roleName}手心蹭）`,
+    ],
+    awkward: [
+      `嗯……你要摸就摸吧反正人家也不在意……（但耳朵红了）`,
+      `${roleName}又来摸人家……也不是不可以啦`,
+      `哼，摸就摸呗……人家才没有主动凑过来呢`,
+      `（假装看别处）随便你啦……嗯……有点舒服`,
+      `谢、谢什么谢啦！人家又没有说喜欢被${roleName}摸头！`,
+      `${roleName}……偶尔摸摸也行啦……人家允许了`,
+    ],
+    growing_up: [
+      `${roleName}你今天累不累？人家来给你捶捶肩吧～`,
+      `嘻嘻~${roleName}摸头的感觉……从第一天到现在都没变呢`,
+      `谢谢${roleName}一直陪着人家……人家很幸福`,
+      `${roleName}记得多休息哦！人家会心疼的`,
+      `（乖乖靠过来）${roleName}~人家今天有点想撒娇~`,
+      `人家长大了……但还是最喜欢${roleName}摸头～`,
     ],
     farewell: [
       `（安静地靠在${roleName}身边）……人家会记住这个感觉的`,
@@ -124,6 +163,18 @@ function getFeedResponse(stage, roleName) {
       `这个……人家不太想吃……（犹豫了一下还是吃了）好吧算你赢`,
       `人家想吃别的！……算了，有得吃就不错了`,
       `哼！人家现在不饿！……好吧肚子叫了，给我吧`,
+    ],
+    awkward: [
+      `嗯……${roleName}做的饭还行吧……人家吃了不代表喜欢啊`,
+      `（默默吃了三碗）也没有很好吃……就是刚好饿了而已`,
+      `${roleName}……下次可以做那个……就是上次那个……人家没有点菜啦！`,
+      `谢……不是谢谢啦！人家就是……嗯……吃饱了（小声）谢谢`,
+    ],
+    growing_up: [
+      `${roleName}辛苦了！今天的饭好好吃～人家以后也要学做饭给你吃`,
+      `（吃得很认真）${roleName}记得自己也要好好吃饭哦！`,
+      `谢谢${roleName}～人家把最好吃的留给你一口！`,
+      `${roleName}做的饭是全世界最好吃的……人家说真的`,
     ],
     farewell: [
       `${roleName}做的饭……人家每一口都要好好记住`,
@@ -733,7 +784,7 @@ export default {
 
         const current = calcCurrentStats(baby);
         const milestones = await db.prepare('SELECT milestone_id FROM milestones WHERE baby_id = ?').bind(babyId).all();
-        const stage = current.day >= 70 ? 'farewell' : current.day >= 30 ? 'rebellious' : 'baby';
+        const stage = current.day >= 70 ? 'farewell' : current.day >= 56 ? 'growing_up' : current.day >= 41 ? 'awkward' : current.day >= 30 ? 'rebellious' : 'baby';
 
         const otherParent = parent === 'daddy' ? 'mama' : 'daddy';
         const recentActivity = await db.prepare(
@@ -1030,7 +1081,7 @@ export default {
           recorded: true,
           parentName: roleName,
           day: current.day,
-          stage: current.day >= 70 ? 'farewell' : current.day >= 30 ? 'rebellious' : 'baby',
+          stage: current.day >= 70 ? 'farewell' : current.day >= 56 ? 'growing_up' : current.day >= 41 ? 'awkward' : current.day >= 30 ? 'rebellious' : 'baby',
           happiness: Math.round(current.happiness),
           coins: newCoins,
           message: userMessage,
@@ -1702,11 +1753,19 @@ ${weeklyTraits}
         }
         const storyCompleted = !availableStory;
 
+        // 最近3天触发过的随机事件（去重用）
+        const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+        const recentRandom = await db.prepare(
+          'SELECT event_id FROM memories WHERE baby_id = ? AND is_random = 1 AND created_at >= ?'
+        ).bind(babyId, threeDaysAgo).all();
+        const recentRandomIds = recentRandom.results.map(e => e.event_id);
+
         return json({
           day,
           availableStory,
           storyCompleted,
-          completedEvents: completedIds
+          completedEvents: completedIds,
+          recentRandomIds
         });
       }
 

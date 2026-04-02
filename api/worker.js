@@ -475,6 +475,49 @@ export default {
 
     if (path === '/health') return json({ status: 'ok', time: new Date().toISOString() });
 
+    // ═══════════════ Gemini Proxy Endpoints (key stays server-side) ═══════════════
+    if (path === '/gemini/chat' && request.method === 'POST') {
+      const body = await request.json();
+      const { systemPrompt, userMessage } = body;
+      if (!systemPrompt && !userMessage) return json({ error: 'Missing prompt' }, 400);
+      
+      const apiKey = env.GEMINI_API_KEY;
+      if (!apiKey) return json({ error: 'Gemini API not configured' }, 500);
+      
+      const model = 'gemini-2.5-flash';
+      const prompt = systemPrompt ? `${systemPrompt}\n\n${userMessage}` : userMessage;
+      const text = await callGeminiAPI(prompt, apiKey, model, { temperature: 0.9, maxTokens: 500 });
+      return json({ text: text || '嘻嘻~' });
+    }
+
+    if (path === '/gemini/vision' && request.method === 'POST') {
+      const body = await request.json();
+      const { prompt, image, mimeType } = body;
+      if (!prompt || !image) return json({ error: 'Missing prompt or image' }, 400);
+      
+      const apiKey = env.GEMINI_API_KEY;
+      if (!apiKey) return json({ error: 'Gemini API not configured' }, 500);
+      
+      const model = 'gemini-2.5-flash';
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [
+              { text: prompt },
+              { inlineData: { mimeType: mimeType || 'image/jpeg', data: image } }
+            ] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } }
+          })
+        }
+      );
+      const data = await resp.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{"score":7,"comment":"好棒哦！"}';
+      return json({ text });
+    }
+
     const db = env.DB;
 
     try {

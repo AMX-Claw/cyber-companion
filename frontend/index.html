@@ -16,9 +16,12 @@
 <script>
 // Gemini API 配置
 window.APP_CONFIG = {
-  GEMINI_API_KEY: 'AIzaSyCLEE3Mbv_w938vfZmFNwTe8Jn9rV8FtPA',
+  // Gemini API key moved to Worker backend for security
+  // Frontend calls /gemini/chat and /gemini/vision endpoints instead
+  GEMINI_API_KEY: null,
   GEMINI_MODEL: 'gemini-2.5-flash',
-  DEFAULT_LANGUAGE: 'zh'
+  DEFAULT_LANGUAGE: 'zh',
+  API_BASE: 'https://xiaoke-api.megyucai.workers.dev'
 };
 </script>
 <style>
@@ -1070,46 +1073,29 @@ const RANDOM_EVENTS = [
   { id: 'rain_play', title: '🌧️ 想在雨里玩', emoji: '☔', prompt: '外面下雨了，宝宝趴在窗户上说好想出去踩水坑', minDay: 11, hasPhoto: false, coins: 15, respPrompt: '最后在门口踩了几个水坑，开心得像中了大奖' },
 ];
 
-// ═══════════════ Gemini API ═══════════════
+// ═══════════════ Gemini API (via Worker proxy) ═══════════════
 async function callGeminiAPI(systemPrompt, userMessage) {
-  const apiKey = window.APP_CONFIG?.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('No Gemini API key');
-  const model = window.APP_CONFIG?.GEMINI_MODEL || 'gemini-2.5-flash';
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
-        generationConfig: { temperature: 0.9, maxOutputTokens: 500, thinkingConfig: { thinkingBudget: 0 } }
-      })
-    }
-  );
+  const apiBase = window.APP_CONFIG?.API_BASE || 'https://xiaoke-api.megyucai.workers.dev';
+  const resp = await fetch(`${apiBase}/gemini/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt, userMessage })
+  });
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '嘻嘻~';
+  if (data.error) throw new Error(data.error);
+  return data.text || '嘻嘻~';
 }
 
 async function callVisionAPI(prompt, base64Image, mimeType) {
-  const apiKey = window.APP_CONFIG?.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('No Gemini API key');
-  const model = window.APP_CONFIG?.GEMINI_MODEL || 'gemini-2.5-flash';
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [
-          { text: prompt },
-          { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Image } }
-        ] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } }
-      })
-    }
-  );
+  const apiBase = window.APP_CONFIG?.API_BASE || 'https://xiaoke-api.megyucai.workers.dev';
+  const resp = await fetch(`${apiBase}/gemini/vision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, image: base64Image, mimeType: mimeType || 'image/jpeg' })
+  });
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '{"score":7,"comment":"好棒哦！"}';
+  if (data.error) throw new Error(data.error);
+  return data.text || '{"score":7,"comment":"好棒哦！"}';
 }
 
 // ═══════════════ Sound ═══════════════

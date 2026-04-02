@@ -12,8 +12,9 @@ database_id = "51cdbaa0-5f7c-452e-a2af-fa990df8d217"
 # binding = "AVATAR_BUCKET"
 # bucket_name = "xiaoke-avatars"
 
+# GEMINI_API_KEY: Worker-side only, never exposed to frontend
 [vars]
-GEMINI_API_KEY = "AIzaSyCLEE3Mbv_w938vfZmFNwTe8Jn9rV8FtPA"
+GEMINI_API_KEY = "AIzaSyB7MlDcnUDYN--gE4MuSzIhz0OmrcOXfGA"
 
 # Cron Trigger: 每天 UTC 12:50 = AEDT 23:50 自动生成所有宝宝日记
 [triggers]

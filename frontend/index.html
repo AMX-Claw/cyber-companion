@@ -1426,6 +1426,8 @@ function App() {
 
   // Core state from API
   const [status, setStatus] = useState(null);
+  const [ambientQuote, setAmbientQuote] = useState('');
+  const ambientFetchedAtRef = useRef(0);
   const [toast, setToast] = useState(null);
   const [babyMessage, setBabyMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
@@ -1547,6 +1549,17 @@ function App() {
     const res = await fetch(`${API}${path}`, opts);
     return res.json();
   }, [token]);
+
+  // Gemini-生成的气泡台词（代替硬编码默认话）。5 分钟刷一次，关键状态变化也刷。
+  useEffect(() => {
+    if (!token || !loggedIn || !status) return;
+    const now = Date.now();
+    if (now - ambientFetchedAtRef.current < 5 * 60 * 1000) return;
+    ambientFetchedAtRef.current = now;
+    api('/ambient-quote').then(d => {
+      if (d && d.quote) setAmbientQuote(d.quote);
+    }).catch(() => {});
+  }, [token, loggedIn, status?.day, Math.floor((status?.happiness || 0) / 20), Math.floor((status?.cleanliness || 0) / 20), Math.floor((status?.hunger || 0) / 20), api]);
 
   // ═══════════════ Fetch Status ═══════════════
   const fetchStatus = useCallback(async () => {
@@ -1930,7 +1943,7 @@ function App() {
     // Try Gemini AI first
     let reply = null;
     let moodChange = 0;
-    const hasGemini = !!window.APP_CONFIG?.GEMINI_API_KEY;
+    const hasGemini = true; // Gemini calls go through Worker backend now
     if (hasGemini) {
       try {
         // 获取soul
@@ -1963,9 +1976,8 @@ function App() {
           doSound(moodChange > 0 ? 'happy' : 'sad');
         } catch(e) { reply = r; doSound('happy'); }
       } catch(e) {
-        const fb = {baby:["妈妈~抱抱~","嘻嘻~妈妈最好了~"],rebellious:["哼！随便啦~","才、才不是想妈妈呢..."],awkward:["嗯……也不是不可以跟你聊","你要说就说吧……人家听着呢"],growing_up:["嘻嘻~人家今天心情不错哦","你今天累不累？人家有点担心你"],farewell:["妈妈...人家舍不得你...","谢谢妈妈一直陪着人家..."]};
-        const pool = fb[stage] || fb.baby;
-        reply = pool[Math.floor(Math.random()*pool.length)];
+        console.error('Gemini chat error:', e);
+        reply = `[调试] AI出错: ${e.message || e}`;
         doSound('click');
       }
     }
@@ -2517,13 +2529,14 @@ function App() {
   const parentLabel = s.youAre === 'daddy' ? '👨 爸爸' : '👩 妈妈';
   const parentName = s.youAre === 'daddy' ? '爸爸' : '妈妈';
 
-  // Default speech
+  // Default speech — ambientQuote (Gemini 生成) 优先，极端状态/isComa/isTantrum 用硬编码抢回
   let defaultSpeech = '嘻嘻～爸爸妈妈好～';
   if (isComa) defaultSpeech = '……';
   else if (isTantrum) defaultSpeech = '哼！人家生气了！不理你们了！😤';
   else if (s.hunger < 30) defaultSpeech = '肚肚好饿……';
   else if (s.cleanliness < 30) defaultSpeech = '人家脏脏的……';
   else if (s.happiness < 20) defaultSpeech = '人家好难过……';
+  else if (ambientQuote) defaultSpeech = ambientQuote;
   else if (s.day >= 70) defaultSpeech = '人家有翅膀了...准备好去看世界了...';
   else if (s.day >= 50) defaultSpeech = '👑 人家是小公主/小王子！嘻嘻~';
   else if (s.day >= 30) defaultSpeech = '哼！人家已经是大宝宝了！';
@@ -3130,7 +3143,7 @@ function App() {
               <button className="chat-cancel" onClick={() => setShowChat(false)}>取消</button>
             </div>
             <div style={{fontSize:'11px',color:'#999',textAlign:'center',marginTop:'10px'}}>
-              随时聊天 · 每天首次+5金币 · {getStage() === 'baby' ? '襁褓期' : getStage() === 'rebellious' ? '叛逆期' : '告别期'}
+              随时聊天 · 每天首次+5金币 · {getStage() === 'baby' ? '襁褓期' : getStage() === 'rebellious' ? '叛逆期' : getStage() === 'awkward' ? '别扭期' : getStage() === 'growing_up' ? '小大人期' : '告别期'}
             </div>
           </div>
         </div>
@@ -3235,7 +3248,7 @@ function App() {
                   { label: '蔬菜', icon: 'vege_carrot', all: ALL_VEGETABLES, owned: inventory.vegetables || [] },
                   { label: '蛋', icon: 'egg_yellow', all: ALL_EGGS, owned: inventory.eggs || [] },
                 ];
-                const totalOwned = secs.reduce((s, x) => s + x.owned.length, 0);
+                const totalOwned = secs.reduce((s, x) => s + x.all.filter(a => x.owned.some(o => o.id === a.id)).length, 0);
                 const totalAll = secs.reduce((s, x) => s + x.all.length, 0);
                 return (
                   <div style={{padding:'8px 0 12px',borderBottom:'1px dashed #f0d5c0',marginBottom:'12px'}}>

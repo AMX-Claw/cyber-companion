@@ -12,13 +12,13 @@ database_id = "51cdbaa0-5f7c-452e-a2af-fa990df8d217"
 # binding = "AVATAR_BUCKET"
 # bucket_name = "xiaoke-avatars"
 
-# GEMINI_API_KEY: Worker-side only, never exposed to frontend
-[vars]
-GEMINI_API_KEY = "AIzaSyB7MlDcnUDYN--gE4MuSzIhz0OmrcOXfGA"
+# GEMINI_API_KEY: set via `wrangler secret put GEMINI_API_KEY` — never in plaintext here
 
-# Cron Trigger: 每天 UTC 12:50 = AEDT 23:50 自动生成所有宝宝日记
+# Cron Trigger: 每天 UTC 13:45 ≈ AEST 23:45 (或 AEDT 00:45 次日) 自动生成当日日记
+# 时间选在 AEST 23:45 是为了在日终前刚好捕获一整天的活动。
+# DST: AEDT 期 (Oct–Apr) 触发时已跨过午夜，worker getAEDTDateString() 会记录为昨天的日期——需要时手动调整偏移
 [triggers]
-crons = ["50 12 * * *"]
+crons = ["45 13 * * *"]
 
 # 鉴权 token 用 wrangler secret 设置：
 # wrangler secret put DADDY_TOKEN

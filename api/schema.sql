@@ -218,3 +218,23 @@ CREATE INDEX IF NOT EXISTS idx_eggs_baby ON eggs(baby_id);
 -- VALUES ('daddy_ak_xiaoke_2026', 'xiaoke', 'parent1', '爸爸', 1706140800000);
 -- INSERT OR IGNORE INTO tokens (token, baby_id, role, role_name, created_at)
 -- VALUES ('mama_xy_xiaoke_2026', 'xiaoke', 'parent2', '妈妈', 1706140800000);
+
+-- ═══════════════════════════════════════════════════════════
+-- Calendar Events (synced from mac daemon via /calendar/sync)
+-- Holds upcoming events so xiaoke can mention them in chat/diary.
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  baby_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  start_ts INTEGER NOT NULL,
+  end_ts INTEGER NOT NULL,
+  all_day INTEGER DEFAULT 0,
+  calendar_name TEXT,
+  source TEXT,
+  location TEXT,
+  notes TEXT,
+  synced_at INTEGER NOT NULL,
+  UNIQUE(baby_id, title, start_ts)
+);
+CREATE INDEX IF NOT EXISTS idx_cal_events_baby_time ON calendar_events(baby_id, start_ts);

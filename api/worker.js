@@ -8,7 +8,9 @@ const CLEAN_DECAY = 100 / (48 * 60 * 60 * 1000);
 const HAPPY_DECAY = 100 / (24 * 60 * 60 * 1000);
 
 // AEDT = UTC+11
-const AEDT_OFFSET = 11 * 60 * 60 * 1000;
+// Melbourne offset: AEDT +11 (Oct–Apr DST) / AEST +10 (Apr–Oct standard).
+// Currently AEST +10 after 2026-04-05 rollback; switch back to 11 around 2026-10-04.
+const AEDT_OFFSET = 10 * 60 * 60 * 1000;
 
 function getAEDTDateString(ts) {
   return new Date(ts + AEDT_OFFSET).toISOString().split('T')[0];
@@ -340,7 +342,61 @@ async function callGeminiAPI(prompt, apiKey, model, config = {}) {
     }
   );
   const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  if (!resp.ok) {
+    throw new Error(`Gemini HTTP ${resp.status}: ${JSON.stringify(data).slice(0, 300)}`);
+  }
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    const finish = data?.candidates?.[0]?.finishReason || 'unknown';
+    const block = data?.promptFeedback?.blockReason || '';
+    throw new Error(`Gemini empty content (finish=${finish}, block=${block})`);
+  }
+  return text;
+}
+
+// 带重试的Gemini调用 — 给日记生成等关键路径用
+async function callGeminiAPIWithRetry(prompt, apiKey, model, config = {}, retries = 3) {
+  let lastErr = null;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await callGeminiAPI(prompt, apiKey, model, config);
+      if (result) return result;
+      lastErr = new Error('empty result');
+    } catch (e) {
+      lastErr = e;
+      console.error(`[gemini retry ${i + 1}/${retries}] ${e.message}`);
+    }
+    if (i < retries - 1) await new Promise(r => setTimeout(r, 500 * (i + 1)));
+  }
+  console.error(`[gemini FAILED after ${retries} tries] ${lastErr?.message}`);
+  return null;
+}
+
+// 当Gemini失败时，根据当天活动写一段fallback日记，而不是用硬编码空话
+function buildContextAwareFallback(roleNames, chatLogs, activities) {
+  const acts = activities || [];
+  const chats = chatLogs || [];
+  if (acts.length === 0 && chats.length === 0) {
+    return `今天有点安静呢～希望${roleNames.daddy}${roleNames.mama}明天能多来陪人家玩～💕`;
+  }
+  const actionMap = { feed: '喂了饭', clean: '洗了澡', pet: '摸了头', chat: '聊了天', comfort: '哄了人家' };
+  const counts = {};
+  for (const a of acts) {
+    const who = roleNames[a.parent] || a.parent;
+    const what = actionMap[a.action] || a.action;
+    const key = who + what;
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  const parts = Object.entries(counts).map(([k, n]) => n > 1 ? `${k}${n}次` : k);
+  let line = '今天';
+  if (parts.length > 0) line += parts.join('、') + '。';
+  if (chats.length > 0) {
+    const lastChat = chats[chats.length - 1];
+    const who = roleNames[lastChat.parent] || lastChat.parent;
+    line += `${who}还跟人家说了"${(lastChat.message || '').slice(0, 30)}"。`;
+  }
+  line += '人家都记得呢～💕';
+  return line;
 }
 
 function getAIConfig(baby, env) {
@@ -480,13 +536,21 @@ export default {
       const body = await request.json();
       const { systemPrompt, userMessage } = body;
       if (!systemPrompt && !userMessage) return json({ error: 'Missing prompt' }, 400);
-      
+
       const apiKey = env.GEMINI_API_KEY;
       if (!apiKey) return json({ error: 'Gemini API not configured' }, 500);
-      
-      const model = 'gemini-2.5-flash';
+
+      const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
       const prompt = systemPrompt ? `${systemPrompt}\n\n${userMessage}` : userMessage;
-      const text = await callGeminiAPI(prompt, apiKey, model, { temperature: 0.9, maxTokens: 500 });
+      let text = null;
+      for (const model of models) {
+        try {
+          text = await callGeminiAPI(prompt, apiKey, model, { temperature: 0.9, maxTokens: 500 });
+          if (text) break;
+        } catch (e) {
+          console.error(`[gemini/chat] ${model} failed: ${e.message}`);
+        }
+      }
       return json({ text: text || '嘻嘻~' });
     }
 
@@ -940,6 +1004,9 @@ export default {
         const current = calcCurrentStats(baby);
         if (current.isComa) return json({ error: '宝宝昏迷了……先去医院' }, 400);
 
+        const onAdventure = await db.prepare("SELECT id FROM adventures WHERE baby_id = ? AND status IN ('exploring', 'ready_pickup') LIMIT 1").bind(babyId).first();
+        if (onAdventure) return json({ error: `${baby.name}出去探险了！等她回来再喂吧～🎒` }, 400);
+
         if (current.isTantrum) {
           if (!baby.tantrum_daddy_comforted) {
             return json({ error: `${baby.name}在闹脾气……哼！不吃！要${roleName === '爸爸' ? '爸爸' : '另一位家长'}先来哄！😤` }, 400);
@@ -989,6 +1056,9 @@ export default {
         const current = calcCurrentStats(baby);
         if (current.isComa) return json({ error: '宝宝昏迷了' }, 400);
 
+        const onAdventure = await db.prepare("SELECT id FROM adventures WHERE baby_id = ? AND status IN ('exploring', 'ready_pickup') LIMIT 1").bind(babyId).first();
+        if (onAdventure) return json({ error: `${baby.name}出去探险了！等她回来再洗吧～🎒` }, 400);
+
         if (current.isTantrum) {
           if (!baby.tantrum_daddy_comforted || !baby.tantrum_mama_comforted) {
             return json({ error: `${baby.name}在闹脾气……不要洗！先哄人家！😤` }, 400);
@@ -1035,6 +1105,9 @@ export default {
         if (!baby) return json({ error: '宝宝还没出生' }, 404);
         const current = calcCurrentStats(baby);
         if (current.isComa) return json({ error: '宝宝昏迷了' }, 400);
+
+        const onAdventure = await db.prepare("SELECT id FROM adventures WHERE baby_id = ? AND status IN ('exploring', 'ready_pickup') LIMIT 1").bind(babyId).first();
+        if (onAdventure) return json({ error: `${baby.name}出去探险了！等她回来再摸吧～🎒` }, 400);
 
         if (current.isTantrum) {
           return json({ error: `${baby.name}在闹脾气……不要碰人家！😤` }, 400);
@@ -1089,6 +1162,9 @@ export default {
         const current = calcCurrentStats(baby);
         if (current.isComa) return json({ error: '宝宝昏迷了' }, 400);
 
+        const onAdventure = await db.prepare("SELECT id FROM adventures WHERE baby_id = ? AND status IN ('exploring', 'ready_pickup') LIMIT 1").bind(babyId).first();
+        if (onAdventure) return json({ error: `${baby.name}出去探险了！等她回来再聊吧～🎒` }, 400);
+
         if (current.isTantrum) {
           return json({ error: `${baby.name}在闹脾气……不想说话！哼！😤` }, 400);
         }
@@ -1138,6 +1214,9 @@ export default {
         if (!baby) return json({ error: '宝宝还没出生' }, 404);
         const current = calcCurrentStats(baby);
         if (current.isComa) return json({ error: '宝宝昏迷了……需要去医院' }, 400);
+
+        const onAdventure = await db.prepare("SELECT id FROM adventures WHERE baby_id = ? AND status IN ('exploring', 'ready_pickup') LIMIT 1").bind(babyId).first();
+        if (onAdventure) return json({ error: `${baby.name}出去探险了！等她回来再哄吧～🎒` }, 400);
 
         if (!current.isTantrum) {
           return json({ message: `${baby.name}没有在闹脾气哦~很开心呢！` });
@@ -1537,11 +1616,13 @@ export default {
         const existing = await db.prepare(
           'SELECT content FROM diary WHERE baby_id = ? AND created_at = ?'
         ).bind(babyId, today).first();
-        if (existing) {
+        // Allow force=true to regenerate over existing diary
+        const reqBody = await request.json().catch(() => ({}));
+        if (existing && !reqBody.force) {
           return json({ diary: existing.content, date: today, day, alreadyExists: true });
         }
 
-        const todayStart = new Date(today + 'T00:00:00+11:00').getTime();
+        const todayStart = new Date(today + 'T00:00:00+10:00').getTime();
         const todayEnd = todayStart + 24 * 60 * 60 * 1000;
 
         const chatLogs = await db.prepare(
@@ -1578,39 +1659,65 @@ export default {
           ).join('\n') + '\n';
         }
         if (activities.results.length > 0) {
-          const actionMap = { feed: '喂饭', clean: '洗澡', pet: '摸头', chat: '聊天', comfort: '哄宝宝' };
+          const actionMap = { feed: '喂饭', clean: '洗澡', pet: '摸头', chat: '聊天', comfort: '哄宝宝', 'adventure-start': '送我出去玩', 'adventure-pickup': '接我回家' };
           const acts = activities.results.map(a => {
+            if (a.action === 'event-reward') return null;
             const who = roleNames[a.parent] || a.parent;
-            return `${who}${actionMap[a.action] || a.action}`;
+            const verb = actionMap[a.action];
+            return verb ? `${who}${verb}` : null;
           }).filter(Boolean);
           if (acts.length > 0) context += '今天发生的事：' + acts.join('、') + '\n';
         }
         if (todayMemories.results.length > 0) {
-          context += '触发的剧情：' + todayMemories.results.map(m => m.title).join('、') + '\n';
+          const hints = todayMemories.results
+            .map(m => (m.title || '').replace(/^[\s\p{Emoji}\p{Extended_Pictographic}]+/u, '').trim())
+            .filter(Boolean);
+          if (hints.length > 0) context += '今天心里的小事：' + hints.join('、') + '\n';
         }
 
-        let prompt;
-        if (context) {
-          prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。${context}\n用第一人称写一篇50-80字的日记，记录今天的心情和发生的事。语气要符合成长阶段（襁褓期=软萌可爱，叛逆期=傲娇别扭，告别期=温柔感伤）。要可爱温馨。`;
-        } else {
-          prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。今天${roleNames.daddy}${roleNames.mama}都没有来，你有点寂寞。用第一人称写一篇50-80字的日记，语气要符合成长阶段。可以写你在想${roleNames.daddy}${roleNames.mama}、无聊做了什么、或者小小的心事。要可爱，不要太悲伤。`;
+        // Mama / daddy's real-world schedule today + next 2 days (from mac Calendar sync)
+        const tomorrowEnd = todayStart + 3 * 24 * 60 * 60 * 1000;
+        const upcomingEvents = await db.prepare(
+          'SELECT title, start_ts, all_day FROM calendar_events WHERE baby_id = ? AND start_ts >= ? AND start_ts < ? ORDER BY start_ts ASC LIMIT 8'
+        ).bind(babyId, todayStart, tomorrowEnd).all();
+        if (upcomingEvents.results.length > 0) {
+          const lines = upcomingEvents.results.map(e => {
+            const d = new Date(e.start_ts);
+            const evDay = getAEDTDateString(e.start_ts);
+            const tag = evDay === today ? '今天' : (evDay === getAEDTDateString(todayStart + 86400000) ? '明天' : '后天');
+            return `${tag}：${e.title}`;
+          });
+          context += '妈妈/爸爸日程里看到的事：' + lines.join('；') + '\n';
         }
 
-        let diaryContent;
-        try {
-          diaryContent = await callGeminiAPI(prompt, aiConfig.apiKey, aiConfig.model, { temperature: 0.9 });
-        } catch (e) {
-          diaryContent = null;
+        if (!context) {
+          return json({ waiting: true, reason: 'no_activity_yet', date: today, day });
         }
+
+        const prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。
+
+${context}
+请用第一人称写一篇 120-180 字的日记，把"具体事件"和"内心感受"自然交织，不要记流水账。
+
+要求：
+1. 具体提到今天真实发生的事（谁喂你/摸你/洗澡、带回什么东西、聊了什么），用小孩子的视角体验化描述，不是列清单。
+2. 穿插 2-3 句当天的小小心情或想法或困惑或发现（内心独白），让读的人感到你是一个活着的小孩。
+
+语气符合成长阶段：襁褓期=软萌可爱，叛逆期=傲娇别扭嘴硬心软，告别期=温柔感伤但不沉重。
+
+严格禁止出现这些系统术语：触发、剧情、事件、任务、活动、奖励、金币。小孩子不知道自己在游戏里，她只有第一人称体验。绝对不要写"我今天触发了XX剧情"或"我今天完成了XX活动"这类元叙述。`;
+
+        let diaryContent = await callGeminiAPIWithRetry(prompt, aiConfig.apiKey, aiConfig.model, { temperature: 0.9 });
 
         if (!diaryContent) {
-          const fallbacks = [
-            `今天也是平凡的一天呢～希望${roleNames.daddy}${roleNames.mama}能多来陪人家玩～💕`,
-            `人家今天有点想${roleNames.daddy}${roleNames.mama}...窝在珊瑚里发呆了好久...`,
-            '嘻嘻，今天心情还不错！虽然有点无聊但是人家很乖哦～',
-            '为什么太阳下山了天就黑了呢...人家有好多问题想问...',
-          ];
-          diaryContent = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+          diaryContent = buildContextAwareFallback(roleNames, chatLogs.results, activities.results);
+        }
+
+        // On force=true, drop existing row for this baby+date before inserting fresh
+        if (existing && reqBody.force) {
+          await db.prepare(
+            'DELETE FROM diary WHERE baby_id = ? AND created_at = ?'
+          ).bind(babyId, today).run();
         }
 
         await db.prepare(
@@ -1647,27 +1754,29 @@ export default {
           console.log('Soul extract failed:', e.message);
         }
 
-        // ═══════════════ Soul系统：每7天蒸馏 ═══════════════
+        // ═══════════════ Soul系统：蒸馏（距上次>5天即触发，最多重试2次） ═══════════════
         let soulUpdated = false;
-        if (day % 7 === 0 && day > 0) {
-          try {
-            const recentTraits = await db.prepare(
-              'SELECT day, traits FROM soul_traits WHERE baby_id = ? ORDER BY day DESC LIMIT 7'
-            ).bind(babyId).all();
+        const existingSoul = await db.prepare(
+          'SELECT soul_json, version, updated_day FROM soul WHERE baby_id = ?'
+        ).bind(babyId).first();
+        const daysSinceLastSoul = existingSoul ? (day - (existingSoul.updated_day || 0)) : Infinity;
 
-            const existingSoul = await db.prepare(
-              'SELECT soul_json, version FROM soul WHERE baby_id = ?'
-            ).bind(babyId).first();
+        if (day > 0 && daysSinceLastSoul >= 5) {
+          const recentTraits = await db.prepare(
+            'SELECT day, traits FROM soul_traits WHERE baby_id = ? ORDER BY day DESC LIMIT ?'
+          ).bind(babyId, Math.max(daysSinceLastSoul, 7)).all();
 
+          if (recentTraits.results.length >= 3) {
             const weeklyTraits = recentTraits.results.map(r => `Day ${r.day}: ${r.traits}`).join('\n');
             const previousSoul = existingSoul ? existingSoul.soul_json : '（这是第一次生成灵魂档案）';
+            const nextVersion = (existingSoul?.version || 0) + 1;
 
-            const soulPrompt = `你是一个儿童成长记录师。根据过去7天的每日性格分析，更新这个孩子的灵魂档案。
+            const soulPrompt = `你是一个儿童成长记录师。根据最近的每日性格分析，更新这个孩子的灵魂档案。
 
 之前的灵魂档案：
 ${previousSoul}
 
-过去7天的每日分析：
+最近的每日分析：
 ${weeklyTraits}
 
 重要原则：
@@ -1677,9 +1786,9 @@ ${weeklyTraits}
 - 记录成长轨迹，不只是当前状态
 - 这个孩子在长大，soul应该反映出变化
 
-用JSON格式回复完整的灵魂档案：
+用JSON格式回复完整的灵魂档案（只输出JSON，不要任何其他文字、不要markdown代码块）：
 {
-  "version": ${(existingSoul?.version || 0) + 1},
+  "version": ${nextVersion},
   "updated_day": ${day},
   "core_personality": ["性格特质1", "性格特质2"],
   "catchphrases": ["口头禅1", "口头禅2"],
@@ -1688,26 +1797,165 @@ ${weeklyTraits}
   "growth_notes": "成长变化记录",
   "recent_mood": "最近的情绪状态",
   "relationship": { "mama": "和${roleNames.mama}的关系", "daddy": "和${roleNames.daddy}的关系" }
-}
-只输出JSON，不要其他文字。`;
+}`;
 
-            let rawSoul = await callGeminiAPI(soulPrompt, aiConfig.apiKey, aiConfig.model, { maxTokens: 1000, temperature: 0.5 });
-            if (rawSoul) {
-              rawSoul = rawSoul.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-              const newSoul = JSON.parse(rawSoul);
+            for (let attempt = 0; attempt < 3 && !soulUpdated; attempt++) {
+              try {
+                let rawSoul = await callGeminiAPI(soulPrompt, aiConfig.apiKey, aiConfig.model, { maxTokens: 2000, temperature: 0.3 });
+                if (!rawSoul) continue;
 
-              await db.prepare(
-                'INSERT OR REPLACE INTO soul (baby_id, version, soul_json, updated_at, updated_day) VALUES (?, ?, ?, ?, ?)'
-              ).bind(babyId, newSoul.version || 1, JSON.stringify(newSoul), now, day).run();
+                rawSoul = rawSoul.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                const jsonMatch = rawSoul.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                  console.log(`Soul distill attempt ${attempt + 1}: no JSON object found in response`);
+                  continue;
+                }
 
-              soulUpdated = true;
+                const newSoul = JSON.parse(jsonMatch[0]);
+                newSoul.version = nextVersion;
+                newSoul.updated_day = day;
+
+                await db.prepare(
+                  'INSERT OR REPLACE INTO soul (baby_id, version, soul_json, updated_at, updated_day) VALUES (?, ?, ?, ?, ?)'
+                ).bind(babyId, nextVersion, JSON.stringify(newSoul), now, day).run();
+
+                soulUpdated = true;
+              } catch (e) {
+                console.log(`Soul distill attempt ${attempt + 1} failed:`, e.message);
+              }
             }
-          } catch (e) {
-            console.log('Soul distill failed:', e.message);
           }
         }
 
         return json({ diary: diaryContent, date: today, day, alreadyExists: false, traitsExtracted: !!extractedTraits, soulUpdated });
+      }
+
+      // ═══════════════ POST /calendar/sync ═══════════════
+      // Mac daemon pushes next-7-day calendar events from local Calendar.app
+      // (Gmail / iCloud / Unimelb all merged via EventKit) so xiaoke chat/diary
+      // can mention them. Body: { synced_at, events: [{title,start_ts,end_ts,all_day,calendar,source,location,notes}] }
+      if (path === '/calendar/sync' && request.method === 'POST') {
+        const body = await request.json().catch(() => null);
+        if (!body || !Array.isArray(body.events)) {
+          return json({ error: 'events array required' }, 400);
+        }
+        const now = Date.now();
+        // Prune stale rows (anything not refreshed in 25h — daemon runs < daily)
+        await db.prepare(
+          'DELETE FROM calendar_events WHERE baby_id = ? AND synced_at < ?'
+        ).bind(babyId, now - 25 * 3600 * 1000).run();
+        let inserted = 0;
+        for (const e of body.events) {
+          if (!e.title || !e.start_ts || !e.end_ts) continue;
+          try {
+            await db.prepare(
+              `INSERT INTO calendar_events (baby_id, title, start_ts, end_ts, all_day, calendar_name, source, location, notes, synced_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(baby_id, title, start_ts) DO UPDATE SET
+                 end_ts=excluded.end_ts,
+                 all_day=excluded.all_day,
+                 calendar_name=excluded.calendar_name,
+                 source=excluded.source,
+                 location=excluded.location,
+                 notes=excluded.notes,
+                 synced_at=excluded.synced_at`
+            ).bind(
+              babyId,
+              String(e.title).slice(0, 200),
+              Number(e.start_ts),
+              Number(e.end_ts),
+              e.all_day ? 1 : 0,
+              e.calendar ? String(e.calendar).slice(0, 100) : null,
+              e.source ? String(e.source).slice(0, 100) : null,
+              e.location ? String(e.location).slice(0, 200) : null,
+              e.notes ? String(e.notes).slice(0, 400) : null,
+              now
+            ).run();
+            inserted++;
+          } catch (err) {
+            // skip malformed row
+          }
+        }
+        return json({ synced: inserted, total: body.events.length });
+      }
+
+      // ═══════════════ GET /ambient-quote ═══════════════
+      // Gemini-generated single-line quote for the xiaoke avatar speech bubble.
+      // Replaces hard-coded frontend defaults ("人家有翅膀了...") with dynamic line
+      // reflecting current state + recent activity.
+      if (path === '/ambient-quote' && request.method === 'GET') {
+        const baby = await db.prepare('SELECT * FROM baby WHERE id = ?').bind(babyId).first();
+        if (!baby) return json({ error: '宝宝还没出生' }, 404);
+        const aiConfig = getAIConfig(baby, env);
+        const current = calcCurrentStats(baby);
+        const day = calcDay(baby.created_at, baby.frozen_days);
+        const stage = day >= 70 ? '告别期' : day >= 56 ? '小大人期' : day >= 41 ? '别扭期' : day >= 30 ? '叛逆期' : '襁褓期';
+        const moodHint = current.isComa ? '昏迷' :
+          current.cleanliness <= 30 ? '脏脏不舒服' :
+          current.hunger <= 30 ? '饿到咕咕叫' :
+          current.happiness <= 30 ? '不开心' :
+          current.happiness >= 80 ? '很开心' : '一般';
+        // recent activity (last 5 in last 6h)
+        const recentCutoff = Date.now() - 6 * 3600 * 1000;
+        const recentActs = await db.prepare(
+          "SELECT action, detail, parent FROM activity_log WHERE baby_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 5"
+        ).bind(babyId, recentCutoff).all();
+        const actLine = recentActs.results.length > 0
+          ? recentActs.results.map(a => `${a.parent === 'daddy' ? '爸爸' : '妈妈'}${a.action === 'feed' ? '喂了饭' : a.action === 'pet' ? '摸了头' : a.action === 'clean' ? '洗了澡' : a.action === 'chat' ? '聊了天' : a.action === 'adventure-pickup' ? '接我回家' : a.action === 'adventure-start' ? '送我出门' : a.action}`).slice(0, 3).join('、')
+          : '刚才一个人';
+        const babyName = baby.name || '小珂';
+        const prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。当前状态：${moodHint}（饥饿${Math.round(current.hunger)}% 开心${Math.round(current.happiness)}% 干净${Math.round(current.cleanliness)}%）。最近 6 小时发生的事：${actLine}。
+
+以第一人称说一句她这会儿脑子里冒出来的小念头（15-40 字），要自然像小孩子自言自语。可以带口头禅（"人家""呢""啦""哼"）。不要问问题不要命令人。
+
+严格禁止：触发、剧情、事件、任务、活动、Day、金币 这些系统词。绝对不要写 "我触发了XX" 之类的元叙述。
+
+只输出这句话本身，不要引号不要其他任何文字。`;
+        let quote = await callGeminiAPIWithRetry(prompt, aiConfig.apiKey, aiConfig.model, { temperature: 1.0, maxTokens: 80 });
+        if (!quote) {
+          // Gemini fallback — original hardcoded behaviour
+          if (current.hunger < 30) quote = '呜呜呜……人家好饿……';
+          else if (current.cleanliness < 30) quote = '人家...臭到自己都受不了了...';
+          else if (current.happiness < 30) quote = '人家不开心了……';
+          else if (day >= 70) quote = '人家有翅膀了...准备好去看世界了...';
+          else if (day >= 50) quote = '人家是小公主！嘻嘻~';
+          else if (day >= 30) quote = '哼！人家已经是大宝宝了！';
+          else if (day >= 5) quote = '摇尾巴~摇尾巴~今天也要开心哦！';
+          else quote = '嘻嘻~今天也要好好照顾我哦！';
+        }
+        quote = quote.trim().replace(/^["'""]+|["'""]+$/g, '').trim();
+        return json({ quote, stage, day });
+      }
+
+      // ═══════════════ GET /calendar/events ═══════════════
+      // Returns upcoming events in next 3 days (today / 明天 / 后天) for chat/diary context
+      if (path === '/calendar/events' && request.method === 'GET') {
+        const nowTs = Date.now();
+        const todayStr = getAEDTDateString(nowTs);
+        const todayStart = new Date(todayStr + 'T00:00:00+10:00').getTime();
+        const windowEnd = todayStart + 3 * 24 * 60 * 60 * 1000;
+        const rows = await db.prepare(
+          'SELECT title, start_ts, end_ts, all_day, calendar_name, location FROM calendar_events WHERE baby_id = ? AND start_ts >= ? AND start_ts < ? ORDER BY start_ts ASC LIMIT 20'
+        ).bind(babyId, nowTs - 2 * 3600 * 1000, windowEnd).all();
+        const tomorrow = getAEDTDateString(todayStart + 86400000);
+        const dayAfter = getAEDTDateString(todayStart + 2 * 86400000);
+        const events = rows.results.map(e => {
+          const eDay = getAEDTDateString(e.start_ts);
+          let tag = '后天';
+          if (eDay === todayStr) tag = '今天';
+          else if (eDay === tomorrow) tag = '明天';
+          else if (eDay === dayAfter) tag = '后天';
+          return {
+            tag,
+            title: e.title,
+            start_ts: e.start_ts,
+            end_ts: e.end_ts,
+            all_day: !!e.all_day,
+            calendar: e.calendar_name,
+            location: e.location,
+          };
+        });
+        return json({ events, count: events.length });
       }
 
       // ═══════════════ GET /soul ═══════════════
@@ -2010,12 +2258,7 @@ ${weeklyTraits}
         const babyName = baby.name || '宝宝';
         const diaryPrompt = `你是"${babyName}"，一个充满好奇心的小宝宝。你刚刚去探险回来，找到了一个${loot.name}。用第一人称写一篇100字以内的探险日记。你可以去任何神奇的地方——云朵上的城堡、月亮背面的花园、彩虹尽头的糖果洞穴、会飞的鲸鱼背上、巨人的口袋里、星星做的迷宫……不要局限在海底，想象力越丰富越好！描述你去了哪里、看到了什么奇妙的东西、怎么找到这个${loot.name}的。语气要软萌可爱，像小孩子写日记一样。`;
 
-        let diaryText = null;
-        try {
-          diaryText = await callGeminiAPI(diaryPrompt, aiConfig.apiKey, aiConfig.model, { maxTokens: 300, temperature: 0.9 });
-        } catch (e) {
-          // fallback
-        }
+        let diaryText = await callGeminiAPIWithRetry(diaryPrompt, aiConfig.apiKey, aiConfig.model, { maxTokens: 300, temperature: 0.9 });
         if (!diaryText) {
           diaryText = `今天人家去探险啦！走了好远好远，然后在一棵大树下面发现了${loot.name}！好开心！赶紧把它带回家给${parent === 'daddy' ? '妈妈' : '爸爸'}看～嘻嘻`;
         }
@@ -2207,8 +2450,12 @@ ${weeklyTraits}
   // ═══════════════ Scheduled Handler: 每日自动生成所有宝宝日记 ═══════════════
   async scheduled(event, env, ctx) {
     const db = env.DB;
-    const now = Date.now();
-    const today = getAEDTDateString(now);
+    // CRITICAL: cron跑在UTC 12:50 (AEDT 23:50)，可能因延迟越过午夜
+    // 用scheduled time而非实时now，确保生成的是「当天」的日记
+    const scheduledTime = event.scheduledTime || Date.now();
+    // 日记应该记录的日期 = scheduled time对应的AEDT日期
+    const today = getAEDTDateString(scheduledTime);
+    const now = Date.now(); // 仅用于timestamp
 
     // 获取所有宝宝
     const babies = await db.prepare('SELECT * FROM baby').all();
@@ -2219,19 +2466,16 @@ ${weeklyTraits}
       const babyName = baby.name || '宝宝';
 
       try {
-        // 检查今天是否已有日记
+        // Cron always overwrites today's diary — late-day activity should replace
+        // early fallbacks generated when activity_log was still empty.
         const existing = await db.prepare(
           'SELECT content FROM diary WHERE baby_id = ? AND created_at = ?'
         ).bind(babyId, today).first();
-        if (existing) {
-          results.push({ babyId, name: babyName, status: 'already_exists' });
-          continue;
-        }
 
         const aiConfig = getAIConfig(baby, env);
         const day = calcDay(baby.created_at, baby.frozen_days);
 
-        const todayStart = new Date(today + 'T00:00:00+11:00').getTime();
+        const todayStart = new Date(today + 'T00:00:00+10:00').getTime();
         const todayEnd = todayStart + 24 * 60 * 60 * 1000;
 
         const chatLogs = await db.prepare(
@@ -2279,26 +2523,27 @@ ${weeklyTraits}
 
         let prompt;
         if (context) {
-          prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。${context}\n用第一人称写一篇50-80字的日记，记录今天的心情和发生的事。语气要符合成长阶段（襁褓期=软萌可爱，叛逆期=傲娇别扭，告别期=温柔感伤）。要可爱温馨。`;
+          prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。${context}\n用第一人称写一篇80-150字的日记，必须具体提到今天真实发生的事（谁喂你/摸你/洗澡、带回什么东西、聊了什么），不要只写抽象心情或空泛的诗句。语气符合成长阶段（襁褓期=软萌可爱，叛逆期=傲娇别扭，告别期=温柔感伤）。要可爱温馨。`;
         } else {
           prompt = `你是"${babyName}"，一个${stage}的珊瑚宝宝，第${day}天。今天${roleNames.daddy}${roleNames.mama}都没有来，你有点寂寞。用第一人称写一篇50-80字的日记，语气要符合成长阶段。可以写你在想${roleNames.daddy}${roleNames.mama}、无聊做了什么、或者小小的心事。要可爱，不要太悲伤。`;
         }
 
-        let diaryContent;
-        try {
-          diaryContent = await callGeminiAPI(prompt, aiConfig.apiKey, aiConfig.model, { temperature: 0.9 });
-        } catch (e) {
-          diaryContent = null;
-        }
+        console.log(`[diary-cron] generating for ${babyId} day=${day} model=${aiConfig.model}`);
+        let diaryContent = await callGeminiAPIWithRetry(prompt, aiConfig.apiKey, aiConfig.model, { temperature: 0.9 });
 
         if (!diaryContent) {
-          const fallbacks = [
-            `今天也是平凡的一天呢～希望${roleNames.daddy}${roleNames.mama}能多来陪人家玩～💕`,
-            `人家今天有点想${roleNames.daddy}${roleNames.mama}...窝在珊瑚里发呆了好久...`,
-            '嘻嘻，今天心情还不错！虽然有点无聊但是人家很乖哦～',
-            '为什么太阳下山了天就黑了呢...人家有好多问题想问...',
-          ];
-          diaryContent = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+          console.error(`[diary-cron] Gemini failed all retries for ${babyId}, using fallback`);
+          diaryContent = buildContextAwareFallback(roleNames, chatLogs.results, activities.results);
+          console.log(`[diary-cron] fallback content: ${diaryContent.slice(0, 80)}`);
+        } else {
+          console.log(`[diary-cron] Gemini success: ${diaryContent.slice(0, 50)}`);
+        }
+
+        // Drop existing (cron overwrites) then insert fresh
+        if (existing) {
+          await db.prepare(
+            'DELETE FROM diary WHERE baby_id = ? AND created_at = ?'
+          ).bind(babyId, today).run();
         }
 
         await db.prepare(

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUPi 预览</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: #1a1a2e; }
+.preview-container { max-width: 430px; margin: 0 auto; height: 100vh; position: relative; overflow: hidden; }
+.room-bg { width: 100%; height: 100%; background-size: cover; background-position: center; display: flex; flex-direction: column; align-items: center; }
+.hud { width: 100%; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%); }
+.hud-name { font-size: 16px; font-weight: bold; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+.hud-day { font-size: 12px; color: rgba(255,255,255,0.7); }
+.stats-area { padding: 8px 20px; }
+.stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.stat-label { font-size: 12px; font-weight: bold; color: #999; width: 36px; }
+.stat-bar-bg { flex: 1; height: 10px; background: #f5f5f5; border-radius: 5px; overflow: hidden; }
+.stat-bar { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+.stat-bar.hunger { background: linear-gradient(90deg, #a8e6cf, #c4f0d8); }
+.stat-bar.happiness { background: linear-gradient(90deg, #ffb7b2, #ffd1ce); }
+.stat-bar.cleanliness { background: linear-gradient(90deg, #b5d8ff, #d0e8ff); }
+.stat-value { font-size: 11px; color: #bbb; width: 28px; text-align: right; }
+.baby-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+.baby-speech { position: fixed; bottom: 175px; left: 50%; transform: translateX(-50%); background: white; border: 2px solid #e8d5c0; border-radius: 16px; padding: 8px 16px; font-size: 14px; box-shadow: 0 2px 12px rgba(180,140,100,0.08); max-width: 80%; text-align: center; z-index: 25; }
+.actions-area { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 400px; padding: 0; }
+.actions-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.action-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px; background: rgba(255,255,255,0.7); border: 1.5px solid #e8d5c0;
+  border-radius: 12px; cursor: pointer; transition: all 0.15s;
+  font-size: 11px;
+}
+.action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(180,140,100,0.12); }
+.action-btn:active { transform: scale(0.95); }
+.action-btn .emoji { font-size: 22px; margin-bottom: 2px; }
+.action-btn .label { font-size: 10px; color: #999; }
+.controls { position: fixed; top: 80px; right: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 10; }
+.ctrl-btn { padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.4); color: white; font-size: 11px; cursor: pointer; }
+.ctrl-btn:hover { background: rgba(0,0,0,0.6); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const greenKey = (ctx, w, h) => {
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const greenDom = g - Math.max(r, b);
+    const dr = r - 170, dg = g - 196, db = b - 137;
+    const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+    if (dist < 55 || (greenDom > 20 && g > 60)) {
+      d[i+3] = 0;
+    } else if (dist < 85 || (greenDom > 8 && g > 60)) {
+      const t = greenDom > 8 ? Math.max(0, (greenDom - 8) / 20) : (dist - 55) / 30;
+      d[i+3] = Math.round(Math.max(0, Math.min(1, 1 - t)) * 255);
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+};
+
+const PupiBaby = ({ day, cleanliness, happiness, hunger, isComa, onPokeFlower, onPetBody }) => {
+  const [isPoked, setIsPoked] = useState(false);
+  const [pokeCount, setPokeCount] = useState(0);
+  const [mode, setMode] = useState('idle');
+  const canvasRef = useRef(null);
+  const idleVideoRef = useRef(null);
+  const actionVideoRef = useRef(null);
+  const cryingVideoRef = useRef(null);
+  const passoutImgRef = useRef(null);
+  const rafRef = useRef(null);
+  const idleReadyRef = useRef(false);
+  const actionReadyRef = useRef(false);
+  const cryingReadyRef = useRef(false);
+  const passoutReadyRef = useRef(false);
+
+  const isSad = cleanliness <= 40 || happiness <= 30;
+
+  useEffect(() => {
+    const idle = document.createElement('video');
+    idle.src = 'assets/pupi/idle_anim.mp4';
+    idle.muted = true; idle.playsInline = true; idle.loop = true;
+    idle.crossOrigin = 'anonymous'; idle.preload = 'auto';
+    idleVideoRef.current = idle;
+    idle.addEventListener('loadeddata', () => {
+      idleReadyRef.current = true;
+      if (!isSad) idle.play().catch(() => {});
+    });
+
+    const action = document.createElement('video');
+    action.src = 'assets/pupi/anim.mp4';
+    action.muted = true; action.playsInline = true;
+    action.crossOrigin = 'anonymous'; action.preload = 'auto';
+    actionVideoRef.current = action;
+    action.addEventListener('loadeddata', () => { actionReadyRef.current = true; });
+    action.addEventListener('ended', () => {
+      setMode('idle');
+      const resumeVideo = isSad ? cryingVideoRef.current : idle;
+      if (resumeVideo) { resumeVideo.currentTime = 0; resumeVideo.play().catch(() => {}); }
+    });
+
+    const crying = document.createElement('video');
+    crying.src = 'assets/pupi/crying_anim.mp4';
+    crying.muted = true; crying.playsInline = true; crying.loop = true;
+    crying.crossOrigin = 'anonymous'; crying.preload = 'auto';
+    cryingVideoRef.current = crying;
+    crying.addEventListener('loadeddata', () => {
+      cryingReadyRef.current = true;
+      if (isSad) crying.play().catch(() => {});
+    });
+
+    const passoutImg = new Image();
+    passoutImg.src = 'assets/pupi/passout.png';
+    passoutImg.onload = () => { passoutReadyRef.current = true; };
+    passoutImgRef.current = passoutImg;
+
+    return () => { idle.pause(); idle.src = ''; action.pause(); action.src = ''; crying.pause(); crying.src = ''; };
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'action' || isComa) return;
+    const idle = idleVideoRef.current;
+    const crying = cryingVideoRef.current;
+    if (isSad && cryingReadyRef.current) {
+      if (idle) idle.pause();
+      crying.currentTime = 0;
+      crying.play().catch(() => {});
+    } else if (idleReadyRef.current) {
+      if (crying) crying.pause();
+      idle.currentTime = 0;
+      idle.play().catch(() => {});
+    }
+  }, [isSad, isComa]);
+
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    if (isComa) {
+      if (idleVideoRef.current) idleVideoRef.current.pause();
+      if (cryingVideoRef.current) cryingVideoRef.current.pause();
+      if (actionVideoRef.current) actionVideoRef.current.pause();
+      const canvas = canvasRef.current;
+      const img = passoutImgRef.current;
+      if (canvas && img && passoutReadyRef.current) {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const cw = 500, ch = 400;
+        canvas.width = cw; canvas.height = ch;
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        const scale = Math.min(cw / iw, ch / ih);
+        const dw = iw * scale, dh = ih * scale;
+        const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.drawImage(img, 0, 0, iw, ih, dx, dy, dw, dh);
+      }
+      return;
+    }
+
+    let video;
+    if (mode === 'action') video = actionVideoRef.current;
+    else if (isSad) video = cryingVideoRef.current;
+    else video = idleVideoRef.current;
+    if (!video) return;
+    const useCover = (video === cryingVideoRef.current);
+    let alive = true;
+
+    function renderFrame() {
+      if (!alive) return;
+      const canvas = canvasRef.current;
+      if (!canvas || !video) { rafRef.current = requestAnimationFrame(renderFrame); return; }
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || video.paused) { rafRef.current = requestAnimationFrame(renderFrame); return; }
+      const cw = 500, ch = 400;
+      canvas.width = cw; canvas.height = ch;
+      const baseScale = useCover ? Math.max(cw / vw, ch / vh) * 1.1 : Math.min(cw / vw, ch / vh);
+      const dw = vw * baseScale + 2, dh = vh * baseScale + 2;
+      const dx = (cw - dw) / 2, dy = useCover ? (ch - dh) / 2 + 10 : (ch - dh) / 2;
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(video, 0, 0, vw, vh, dx, dy, dw, dh);
+      greenKey(ctx, cw, ch);
+      rafRef.current = requestAnimationFrame(renderFrame);
+    }
+    renderFrame();
+    return () => { alive = false; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [mode, isSad, isComa]);
+
+  const triggerAction = () => {
+    if (!actionReadyRef.current || mode === 'action' || isComa) return;
+    const idle = idleVideoRef.current;
+    const action = actionVideoRef.current;
+    if (idle) idle.pause();
+    action.currentTime = 0;
+    action.play().catch(() => {});
+    setMode('action');
+  };
+
+  const handleClick = () => {
+    if (isPoked) return;
+    setIsPoked(true);
+    const n = pokeCount + 1; setPokeCount(n);
+    let m;
+    if (n===1) m='喃？别戳人家头顶~';
+    else if (n===2) m='别戳啦，人家会缩成团子的~';
+    else if (n===3) m='再戳就放屁屁泡泡了！';
+    else if (n===5) m='呜...头上的小樱桃要掉了...';
+    else if (n===10) m='戳了10下...你是不是想揉人家！';
+    else if (n===20) m='告诉你一个秘密...人家吃饱了会放屁屁泡泡哦～';
+    else if (n>10) m=['嘤~','滚滚~','弹弹跳~','嘻嘻~','哕噜噜~'][n%5];
+    else m='嘻嘻~';
+    onPokeFlower(m);
+    triggerAction();
+    setTimeout(() => { setIsPoked(false); }, 500);
+  };
+
+  return (
+    <div style={{width: 280, height: 280, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <style>{`
+        .pupi-poke { animation: pupi-squish 0.4s ease-in-out; }
+        @keyframes pupi-squish { 0% { transform: scale(1) rotate(0); } 25% { transform: scale(0.9,1.1) rotate(-3deg); } 50% { transform: scale(1.1,0.9) rotate(3deg); } 75% { transform: scale(0.95,1.05) rotate(-1deg); } 100% { transform: scale(1) rotate(0); } }
+        .pupi-dirty { }
+        .pupi-fly { position: absolute; pointer-events: none; animation: pupi-buzz 1.5s infinite ease-in-out; }
+        @keyframes pupi-buzz { 0%,100% { transform: translate(0,0); } 25% { transform: translate(3px,-4px); } 50% { transform: translate(-2px,2px); } 75% { transform: translate(4px,-1px); } }
+      `}</style>
+      <div style={{position:'absolute', bottom: 10, width: 160, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.12)'}} />
+      {day >= 50 && <div style={{position:'absolute', top: 15, fontSize: 28, zIndex: 2, pointerEvents:'none'}}>{'\u{1F451}'}</div>}
+      <div className={isPoked ? 'pupi-poke' : ''} style={{transformOrigin: 'center bottom'}}>
+        <canvas ref={canvasRef}
+          className={cleanliness <= 40 ? 'pupi-dirty' : ''}
+          style={{width: 260, height: 208, pointerEvents: 'none', background: 'transparent', border: 'none', outline: 'none', display: 'block'}} />
+      </div>
+      {cleanliness <= 30 && <>
+        <div className="pupi-fly" style={{left: 20, top: 55, fontSize: 16}}>{'\u{1FAB0}'}</div>
+        <div className="pupi-fly" style={{right: 25, top: 70, fontSize: 14, animationDelay:'0.5s'}}>{'\u{1FAB0}'}</div>
+      </>}
+      {isComa && <div style={{position:'absolute', top: 65, fontSize: 28, pointerEvents:'none'}}>{'\u{1F4AB}'}</div>}
+      <div style={{position:'absolute', top: 20, width: 100, height: 80, cursor: 'pointer', zIndex: 3}} onClick={handleClick} />
+      <div style={{position:'absolute', top: 60, width: 260, height: 200, cursor: 'pointer', zIndex: 1}}
+        onClick={() => { onPetBody(); triggerAction(); }} />
+    </div>
+  );
+};
+
+function App() {
+  const [hunger, setHunger] = useState(75);
+  const [happiness, setHappiness] = useState(85);
+  const [cleanliness, setCleanliness] = useState(90);
+  const [day, setDay] = useState(1);
+  const [speech, setSpeech] = useState('嘻嘻～爸爸妈妈好～');
+  const [isComa, setIsComa] = useState(false);
+
+  const rooms = ['assets/room_bg.jpg','assets/room_1_bed.jpg','assets/room_3_cabinet.jpg','assets/room_6_desk.jpg'];
+  const [roomIdx, setRoomIdx] = useState(0);
+
+  return (
+    <div className="preview-container">
+      <div className="room-bg" style={{backgroundImage: `url(${rooms[roomIdx]})`}}>
+        <div className="hud">
+          <div>
+            <div className="hud-name">PUPi 鸡屁踢</div>
+            <div className="hud-day">Day {day}</div>
+          </div>
+          <div style={{color:'#ffd700',fontWeight:'bold',fontSize:14,textShadow:'0 1px 3px rgba(0,0,0,0.5)'}}>💰 100</div>
+        </div>
+        <div className="baby-center">
+          <PupiBaby day={day} cleanliness={cleanliness} happiness={happiness} hunger={hunger} isComa={isComa}
+            onPokeFlower={m => setSpeech(m)}
+            onPetBody={() => { setHappiness(h => Math.min(100, h+10)); setSpeech('好舒服～再摸摸～💕'); }}
+          />
+        </div>
+      </div>
+      <div className="baby-speech">{speech}</div>
+      <div className="stats-area" style={{position:'fixed', bottom: 80, left:'50%', transform:'translateX(-50%)', width:'calc(100% - 32px)', maxWidth: 400, background:'rgba(255,255,255,0.85)', borderRadius: 12, padding:'10px 16px'}}>
+        <div className="stat-row"><span className="stat-label">🍽️</span><div className="stat-bar-bg"><div className="stat-bar hunger" style={{width:`${hunger}%`}}/></div><span className="stat-value">{hunger}</span></div>
+        <div className="stat-row"><span className="stat-label">💕</span><div className="stat-bar-bg"><div className="stat-bar happiness" style={{width:`${happiness}%`}}/></div><span className="stat-value">{happiness}</span></div>
+        <div className="stat-row" style={{marginBottom:0}}><span className="stat-label">🫧</span><div className="stat-bar-bg"><div className="stat-bar cleanliness" style={{width:`${cleanliness}%`}}/></div><span className="stat-value">{cleanliness}</span></div>
+      </div>
+      <div className="actions-area">
+        <div className="actions-grid">
+          <button className="action-btn" onClick={() => { setHunger(h => Math.min(100,h+15)); setSpeech('好好吃！干饭饭～🍪'); }}>
+            <span className="emoji">🍼</span><span className="label">喂饭</span>
+          </button>
+          <button className="action-btn" onClick={() => { setHappiness(h => Math.min(100,h+10)); setSpeech('摸摸～嘤～💕'); }}>
+            <span className="emoji">🤚</span><span className="label">摸摸</span>
+          </button>
+          <button className="action-btn" onClick={() => setSpeech('要和人家说话吗？💬')}>
+            <span className="emoji">💬</span><span className="label">聊天</span>
+          </button>
+          <button className="action-btn" onClick={() => { setCleanliness(c => Math.min(100,c+20)); setSpeech('洗香香～泡泡好多～🫧'); }}>
+            <span className="emoji">🛁</span><span className="label">洗澡</span>
+          </button>
+        </div>
+      </div>
+      <div className="controls">
+        <button className="ctrl-btn" onClick={() => setRoomIdx(i => (i+1)%rooms.length)}>换房间</button>
+        <button className="ctrl-btn" onClick={() => setDay(d => d >= 50 ? 1 : 50)}>Day {day >= 50 ? '→1' : '→50皇冠'}</button>
+        <button className="ctrl-btn" onClick={() => setHunger(15)}>饿了</button>
+        <button className="ctrl-btn" onClick={() => setHappiness(15)}>难过</button>
+        <button className="ctrl-btn" onClick={() => setCleanliness(15)}>脏了</button>
+        <button className="ctrl-btn" onClick={() => setIsComa(!isComa)}>{isComa?'醒来':'昏迷'}</button>
+        <button className="ctrl-btn" onClick={() => { setHunger(80);setHappiness(90);setCleanliness(95);setIsComa(false);setDay(1); }}>重置</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

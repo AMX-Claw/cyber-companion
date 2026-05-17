@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUPi 逐帧动画 Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; background: #f5efe6; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+.stage { width: 300px; height: 320px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 40px; position: relative; }
+.shadow { position: absolute; bottom: 30px; width: 120px; height: 16px; border-radius: 50%; background: rgba(0,0,0,0.1); transition: transform 0.3s; }
+.pupi-wrap { position: relative; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
+.pupi-wrap img { width: 160px; height: 160px; object-fit: contain; transition: opacity 0.15s; }
+
+.state-label { margin-top: 8px; font-size: 18px; font-weight: bold; color: #8b7355; }
+.controls { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+.ctrl { padding: 10px 20px; border-radius: 12px; border: 1.5px solid #e8d5c0; background: rgba(255,255,255,0.8); cursor: pointer; font-size: 14px; transition: all 0.15s; }
+.ctrl:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(180,140,100,0.15); }
+.ctrl.active { background: #ffe0c0; border-color: #d4a574; font-weight: bold; }
+
+/* Idle: gentle float */
+@keyframes idle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Happy: energetic bounce */
+@keyframes happy-bounce {
+  0% { transform: translateY(0); }
+  15% { transform: translateY(-25px); }
+  30% { transform: translateY(0); }
+  38% { transform: translateY(-4px); }
+  46% { transform: translateY(0); }
+  60% { transform: translateY(-18px) rotate(5deg); }
+  75% { transform: translateY(0) rotate(0); }
+  83% { transform: translateY(-3px); }
+  91% { transform: translateY(0); }
+  100% { transform: translateY(0); }
+}
+
+/* Sad: slow droopy sway */
+@keyframes sad-sway {
+  0%, 100% { transform: translateY(4px) rotate(0); }
+  25% { transform: translateY(2px) rotate(-3deg); }
+  50% { transform: translateY(6px) rotate(0); }
+  75% { transform: translateY(2px) rotate(3deg); }
+}
+
+/* Hungry: eager shuffle */
+@keyframes hungry-shuffle {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  15% { transform: translateX(-6px) translateY(-2px); }
+  30% { transform: translateX(0) translateY(0); }
+  45% { transform: translateX(6px) translateY(-2px); }
+  60% { transform: translateX(0) translateY(0); }
+  75% { transform: translateX(-3px) translateY(-1px); }
+  90% { transform: translateX(3px) translateY(-1px); }
+}
+
+/* Eating: happy wiggle */
+@keyframes eating-wiggle {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  12% { transform: rotate(-4deg) translateY(-3px); }
+  25% { transform: rotate(4deg) translateY(0); }
+  37% { transform: rotate(-3deg) translateY(-2px); }
+  50% { transform: rotate(3deg) translateY(0); }
+  62% { transform: rotate(-2deg) translateY(-1px); }
+  75% { transform: rotate(2deg) translateY(0); }
+  87% { transform: rotate(-1deg) translateY(0); }
+}
+
+/* Sleeping: very gentle breathing */
+@keyframes sleep-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+.pupi-idle .pupi-wrap { animation: idle-float 2.5s ease-in-out infinite; }
+.pupi-happy .pupi-wrap { animation: happy-bounce 1.4s ease-in-out infinite; }
+.pupi-sad .pupi-wrap { animation: sad-sway 3s ease-in-out infinite; }
+.pupi-hungry .pupi-wrap { animation: hungry-shuffle 1.2s ease-in-out infinite; }
+.pupi-eating .pupi-wrap { animation: eating-wiggle 1s ease-in-out infinite; }
+.pupi-sleeping .pupi-wrap { animation: sleep-breathe 3s ease-in-out infinite; }
+
+/* Shadow reacts to bounce */
+.pupi-happy .shadow { animation: shadow-bounce 1.4s ease-in-out infinite; }
+@keyframes shadow-bounce {
+  0% { transform: scale(1); }
+  15% { transform: scale(0.7); }
+  30% { transform: scale(1); }
+  60% { transform: scale(0.8); }
+  75% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+/* Zzz for sleeping */
+.zzz { position: absolute; top: 10px; right: 20px; font-size: 20px; animation: zzz-float 2s ease-in-out infinite; }
+.zzz2 { position: absolute; top: 25px; right: 5px; font-size: 14px; animation: zzz-float 2s ease-in-out infinite 0.7s; opacity: 0.6; }
+@keyframes zzz-float {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateY(-25px) scale(1.1); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="shadow" id="shadow"></div>
+  <div class="pupi-wrap" id="wrap">
+    <img id="pupi" src="assets/pupi/idle.png" alt="PUPi">
+  </div>
+</div>
+<div class="state-label" id="label">💤 待机中</div>
+<div class="controls">
+  <button class="ctrl active" onclick="setState('idle')">😊 待机</button>
+  <button class="ctrl" onclick="setState('happy')">🎉 开心</button>
+  <button class="ctrl" onclick="setState('sad')">😢 难过</button>
+  <button class="ctrl" onclick="setState('hungry')">🍽️ 饿了</button>
+  <button class="ctrl" onclick="setState('eating')">😋 吃东西</button>
+  <button class="ctrl" onclick="setState('sleeping')">💤 睡觉</button>
+</div>
+
+<script>
+const pupi = document.getElementById('pupi');
+const stage = document.getElementById('stage');
+const label = document.getElementById('label');
+let frameTimer = null;
+let currentState = 'idle';
+
+const states = {
+  idle: {
+    label: '😊 待机中～',
+    frames: ['idle','idle','playful','idle','cheeky','idle','satisfied','idle'],
+    interval: 2500,
+    zzz: false
+  },
+  happy: {
+    label: '🎉 好开心！蹦蹦跳！',
+    frames: ['happy','excited','playful','happy','satisfied','excited','happy','playful'],
+    interval: 400,
+    zzz: false
+  },
+  sad: {
+    label: '😢 呜呜…人家不开心…',
+    frames: ['sleepy','idle','sleepy','sleepy'],
+    interval: 2000,
+    zzz: false
+  },
+  hungry: {
+    label: '🍽️ 肚肚饿了…想吃东西…',
+    frames: ['cheeky','surprised','cheeky','idle','surprised','cheeky'],
+    interval: 800,
+    zzz: false
+  },
+  eating: {
+    label: '😋 好好吃！干饭饭！',
+    frames: ['satisfied','happy','satisfied','excited','happy','satisfied'],
+    interval: 500,
+    zzz: false
+  },
+  sleeping: {
+    label: '💤 呼呼…做梦中…',
+    frames: ['sleepy','sleepy'],
+    interval: 3000,
+    zzz: true
+  }
+};
+
+function setState(name) {
+  currentState = name;
+  const s = states[name];
+  label.textContent = s.label;
+  stage.className = 'stage pupi-' + name;
+
+  document.querySelectorAll('.ctrl').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.ctrl[onclick="setState('${name}')"]`).classList.add('active');
+
+  // Remove old zzz
+  document.querySelectorAll('.zzz,.zzz2').forEach(el => el.remove());
+  if (s.zzz) {
+    const z1 = document.createElement('div'); z1.className = 'zzz'; z1.textContent = '💤';
+    const z2 = document.createElement('div'); z2.className = 'zzz2'; z2.textContent = '💤';
+    document.getElementById('wrap').appendChild(z1);
+    document.getElementById('wrap').appendChild(z2);
+  }
+
+  // Start frame cycling
+  if (frameTimer) clearInterval(frameTimer);
+  let fi = 0;
+  pupi.src = 'assets/pupi/' + s.frames[0] + '.png';
+  frameTimer = setInterval(() => {
+    fi = (fi + 1) % s.frames.length;
+    pupi.src = 'assets/pupi/' + s.frames[fi] + '.png';
+  }, s.interval);
+}
+
+// Preload all images
+['idle','happy','playful','surprised','cheeky','satisfied','excited','sleepy'].forEach(name => {
+  const img = new Image();
+  img.src = 'assets/pupi/' + name + '.png';
+});
+
+setState('idle');
+</script>
+</body>
+</html>

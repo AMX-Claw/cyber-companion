@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff9a9e"/>
+      <stop offset="100%" stop-color="#fad0c4"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  
+  <!-- Body -->
+  <g transform="translate(256, 240)">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="100" rx="70" ry="16" fill="#d4a5a5" opacity="0.3"/>
+    
+    <!-- Body outline and fill -->
+    <ellipse cx="0" cy="20" rx="80" ry="70" fill="#333"/>
+    <ellipse cx="0" cy="20" rx="75" ry="65" fill="#ffd4d4"/>
+    
+    <!-- Cheeks -->
+    <circle cx="-40" cy="30" r="16" fill="#ffb6c1" opacity="0.6"/>
+    <circle cx="40" cy="30" r="16" fill="#ffb6c1" opacity="0.6"/>
+    
+    <!-- Eyes - happy -->
+    <path d="M-35,18 Q-25,8 -15,18" fill="none" stroke="#333" stroke-width="5" stroke-linecap="round"/>
+    <path d="M15,18 Q25,8 35,18" fill="none" stroke="#333" stroke-width="5" stroke-linecap="round"/>
+    
+    <!-- Mouth - happy -->
+    <path d="M-15,38 Q0,50 15,38" fill="#ff9999" stroke="#333" stroke-width="3"/>
+    
+    <!-- Arms -->
+    <rect x="-95" y="10" width="25" height="35" rx="10" fill="#333"/>
+    <rect x="-92" y="13" width="19" height="29" rx="8" fill="#ffd4d4"/>
+    <rect x="70" y="10" width="25" height="35" rx="10" fill="#333"/>
+    <rect x="73" y="13" width="19" height="29" rx="8" fill="#ffd4d4"/>
+    
+    <!-- Flower on head -->
+    <g transform="translate(0,-60)">
+      <!-- Stem -->
+      <rect x="-2" y="5" width="4" height="15" fill="#5a8a5a"/>
+      <!-- Petals -->
+      <circle cx="0" cy="-5" r="12" fill="#da7756"/>
+      <circle cx="-10" cy="0" r="10" fill="#e8896a"/>
+      <circle cx="10" cy="0" r="10" fill="#e8896a"/>
+      <circle cx="-8" cy="-10" r="10" fill="#e8896a"/>
+      <circle cx="8" cy="-10" r="10" fill="#e8896a"/>
+      <!-- Center -->
+      <circle cx="0" cy="-5" r="6" fill="#ffb399"/>
+    </g>
+    
+    <!-- Sparkles -->
+    <text x="-80" y="-50" font-size="28">✨</text>
+    <text x="60" y="-40" font-size="22">✨</text>
+  </g>
+  
+  <!-- Title -->
+  <text x="256" y="470" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="60" fill="#fff" stroke="#333" stroke-width="2">小珂</text>
+</svg>
